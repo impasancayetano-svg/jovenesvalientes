@@ -484,6 +484,14 @@ textarea.sug-area:focus{border-color:var(--blue);}
   <button class="back-btn" onclick="showSection('menu')">← VOLVER</button>
 </div>
 
+<!-- ACTIVIDAD (admin) -->
+<div class="section" id="sec-actividad">
+  <div class="sec-title-wrap"><span class="sec-title">🔍 Registro de Actividad</span></div>
+  <div id="actividadList"></div>
+  <button class="add-btn" style="background:var(--red);margin-bottom:6px" onclick="clearActividad()">🗑️ Limpiar registro</button>
+  <button class="back-btn" onclick="showSection('menu')">← VOLVER</button>
+</div>
+
 <!-- CUENTAS DIRECTIVA (admin) -->
 <div class="section" id="sec-cuentas">
   <div class="sec-title-wrap"><span class="sec-title">👥 Cuentas Directiva</span></div>
@@ -899,6 +907,7 @@ textarea.sug-area:focus{border-color:var(--blue);}
       <button class="add-btn" style="margin:0;background:var(--teal);font-size:13px" onclick="closeModal('configModal');showSection('cuentas')">👔 Directiva</button>
       <button class="add-btn" style="margin:0;background:linear-gradient(135deg,#1d4ed8,#7c3aed);font-size:13px" onclick="closeModal('configModal');showSection('cuentas-jv')">⭐ Jóvenes Valientes</button>
       <button class="add-btn" style="margin:0;background:var(--orange);font-size:13px;grid-column:span 2" onclick="closeModal('configModal');showSection('solicitudes-jv')">📨 Solicitudes JV <span id="cfgSolBadge" style="background:rgba(255,255,255,.3);border-radius:99px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
+      <button class="add-btn" style="margin:0;background:#7f1d1d;font-size:13px;grid-column:span 2" onclick="closeModal('configModal');showSection('actividad')">🔍 Registro de actividad <span id="cfgActBadge" style="background:rgba(255,255,255,.3);border-radius:99px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
     </div>
 
     <div class="divider"></div>
@@ -1118,7 +1127,7 @@ var _cx=0,_cy=0,_cz=1,_iw=0,_ih=0,_drag=null,_pinchZ=1,_pinchD=0;
 function initDB(d){
   if(!d||typeof d!=='object')return;
   DB=d;
-  var lists=['quien','fechas','botones','redes','sugerencias','asisMiembros','cuentas','jvCuentas','solicitudesJV'];
+  var lists=['quien','fechas','botones','redes','sugerencias','asisMiembros','cuentas','jvCuentas','solicitudesJV','actividad'];
   for(var i=0;i<lists.length;i++) if(!DB[lists[i]])DB[lists[i]]=[];
   if(!DB.config)DB.config={};
   if(!DB.asistencia)DB.asistencia={};
@@ -1168,6 +1177,7 @@ function setSyncBar(t,m){
 }
 function startAutoRefresh(){
   setInterval(async function(){
+    checkSessionExpiry();
     if(isSaving||Date.now()-lastSave<8000)return;
     try{
       var res=await fetch(API_URL+'?t='+Date.now());
@@ -1175,6 +1185,7 @@ function startAutoRefresh(){
       var d={};try{d=JSON.parse(text);}catch(e){}
       if(d&&JSON.stringify(d)!==JSON.stringify(DB)){
         initDB(d);applyAll();showToast('🔄 Actualizado');
+        updActBadge();
       }
     }catch(e){}
   },12000);
@@ -1417,6 +1428,7 @@ function showSection(n){
   if(n==='asistencia'){buildYearTabs();renderAsistencia();}
   if(n==='cuentas')renderCuentas();
   if(n==='cuentas-jv')renderCuentasJV();
+  if(n==='actividad'){loadFromCloud().then(function(){renderActividad();});}
   if(n==='solicitudes-jv'){loadFromCloud().then(function(){renderSolicitudes();updBadges();});}
   if(n==='redes')renderRedes();
   if(n==='mi-asistencia')renderMiAsistencia();
@@ -1443,28 +1455,46 @@ function openDirectivaLogin(){
   setTimeout(function(){document.getElementById('dirUserInput').focus();},120);
 }
 function checkAdminPwd(){
+  var block=checkLoginBlock('admin');
+  if(block){document.getElementById('adminPwdErr').textContent=block;document.getElementById('adminPwdErr').style.display='block';return;}
   var v=document.getElementById('adminPwdInput').value;
   if(v===ADMIN_PWD){
     document.getElementById('adminPwdErr').style.display='none';
     document.getElementById('adminPwdInput').value='';
+    clearAttempts('admin');
+    var s={rol:'admin',loginTs:Date.now()};localStorage.setItem('jvSession',JSON.stringify(s));
+    logActividad('login_ok','Admin','Acceso al modo administrador');
     closeModal('adminLoginModal');enterAdmin();
   }else{
+    registerFailedAttempt('admin');
+    var block2=checkLoginBlock('admin');
+    document.getElementById('adminPwdErr').textContent=block2||'Contraseña incorrecta.';
     document.getElementById('adminPwdErr').style.display='block';
     document.getElementById('adminPwdInput').value='';
+    logActividad('login_fail','Admin','Intento fallido de acceso admin');
   }
 }
 function checkDirectivaPwd(){
   var user=(document.getElementById('dirUserInput').value||'').trim().toLowerCase();
   var pwd=document.getElementById('dirPwdInput').value;
+  var block=checkLoginBlock('dir_'+user);
+  if(block){document.getElementById('dirPwdErr').textContent=block;document.getElementById('dirPwdErr').style.display='block';return;}
   var cuenta=(DB.cuentas||[]).find(function(c){return c.usuario.toLowerCase()===user&&c.password===pwd;});
   if(cuenta){
     document.getElementById('dirPwdErr').style.display='none';
-    document.getElementById('dirPwdInput').value='';
-    document.getElementById('dirUserInput').value='';
+    document.getElementById('dirPwdInput').value='';document.getElementById('dirUserInput').value='';
+    clearAttempts('dir_'+user);
+    var s={rol:'directiva',usuario:cuenta.usuario,loginTs:Date.now()};
+    localStorage.setItem('jvSession',JSON.stringify(s));
+    logActividad('login_ok',cuenta.nombre,'Acceso como Directiva');
     closeModal('directivaLoginModal');enterDirectiva(cuenta);
   }else{
+    registerFailedAttempt('dir_'+user);
+    var block2=checkLoginBlock('dir_'+user);
+    document.getElementById('dirPwdErr').textContent=block2||'Usuario o contraseña incorrectos.';
     document.getElementById('dirPwdErr').style.display='block';
     document.getElementById('dirPwdInput').value='';
+    if(user)logActividad('login_fail',user||'desconocido','Intento fallido de acceso Directiva');
   }
 }
 function enterAdmin(){
@@ -1607,13 +1637,18 @@ function showJVLogin(){
 function doJVLogin(){
   var user=(document.getElementById('jvLUser').value||'').trim().toLowerCase();
   var pwd=document.getElementById('jvLPwd').value;
+  var errEl=document.getElementById('jvLErr');
+  var block=checkLoginBlock('jv_'+user);
+  if(block){errEl.textContent=block;errEl.style.display='block';return;}
   var cuenta=(DB.jvCuentas||[]).find(function(c){return c.usuario.toLowerCase()===user&&c.password===pwd;});
   if(cuenta){
-    // Apuntar al objeto real dentro de DB.jvCuentas para que los cambios (emoji, etc.) se reflejen siempre
     var jvRef=(DB.jvCuentas||[]).find(function(x){return x.usuario===cuenta.usuario;});
     currentJVUser=jvRef||cuenta;
     currentJVUser.lastLogin=new Date().toISOString();
-    localStorage.setItem('jvSession',JSON.stringify({rol:'jv',usuario:currentJVUser.usuario}));
+    clearAttempts('jv_'+user);
+    var s={rol:'jv',usuario:currentJVUser.usuario,loginTs:Date.now()};
+    localStorage.setItem('jvSession',JSON.stringify(s));
+    logActividad('login_ok',cuenta.nombre,'Acceso como Joven Valiente');
     saveToCloud();
     closeModal('jvModal');
     setTxt('jvBtnLabel',cuenta.nombre.split(' ')[0].toUpperCase());
@@ -1622,20 +1657,22 @@ function doJVLogin(){
     if(!isAdmin&&!isDirectiva){
       document.querySelectorAll('.jv-only').forEach(function(e){e.style.display='';});
       document.getElementById('profileBtn').style.display='';
-      refreshJVProfileCard();
-      setJVCardVisible(true);
-      hideLoginBtns();
+      refreshJVProfileCard();setJVCardVisible(true);hideLoginBtns();
     }
-    closeModal('jvModal');
-    showSection('menu');
+    closeModal('jvModal');showSection('menu');
     applyThemeForUser(currentJVUser.usuario);
     showToast('⭐ ¡Hola, '+currentJVUser.nombre.split(' ')[0]+'!');
   }else{
-    document.getElementById('jvLErr').style.display='block';
+    registerFailedAttempt('jv_'+user);
+    var block2=checkLoginBlock('jv_'+user);
+    errEl.textContent=block2||'Usuario o contraseña incorrectos.';
+    errEl.style.display='block';
     document.getElementById('jvLPwd').value='';
+    if(user)logActividad('login_fail',user,'Intento fallido de acceso JV');
   }
 }
 function logoutJV(){
+  if(currentJVUser)logActividad('logout',currentJVUser.nombre,'Cierre de sesión JV');
   currentJVUser=null;
   localStorage.removeItem('jvSession');
   setTxt('jvBtnLabel','JOVEN VALIENTE');
@@ -1814,6 +1851,85 @@ function pickRedColor(c){
   document.getElementById('redColorHex').textContent=c;
 }
 
+
+/* ===== SEGURIDAD ===== */
+var _loginAttempts={};
+var SESSION_HOURS=24;
+
+async function getIP(){
+  try{var r=await fetch('https://api.ipify.org?format=json');var d=await r.json();return d.ip||'desconocida';}
+  catch(e){return 'desconocida';}
+}
+function checkLoginBlock(key){
+  var a=_loginAttempts[key];
+  if(!a)return false;
+  if(a.until&&Date.now()<a.until){
+    var mins=Math.ceil((a.until-Date.now())/60000);
+    return 'Demasiados intentos. Esperá '+mins+' minuto'+(mins>1?'s':'')+'.';
+  }
+  return false;
+}
+function registerFailedAttempt(key){
+  if(!_loginAttempts[key])_loginAttempts[key]={count:0,until:null};
+  _loginAttempts[key].count++;
+  if(_loginAttempts[key].count>=3){_loginAttempts[key].until=Date.now()+5*60*1000;_loginAttempts[key].count=0;}
+}
+function clearAttempts(key){if(_loginAttempts[key]){_loginAttempts[key].count=0;_loginAttempts[key].until=null;}}
+async function logActividad(tipo,usuario,detalle){
+  if(!DB.actividad)DB.actividad=[];
+  var ip=await getIP();
+  DB.actividad.unshift({tipo:tipo,usuario:usuario,detalle:detalle||'',ip:ip,ts:Date.now(),
+    fecha:new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    hora:new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}),seen:false});
+  if(DB.actividad.length>200)DB.actividad=DB.actividad.slice(0,200);
+  updActBadge();
+}
+function updActBadge(){
+  var unseen=(DB.actividad||[]).filter(function(a){return !a.seen&&(a.tipo==='login_ok'||a.tipo==='login_fail');}).length;
+  var b=document.getElementById('cfgActBadge');if(b)b.textContent=unseen>0?unseen:'';
+}
+function markActividadSeen(){(DB.actividad||[]).forEach(function(a){a.seen=true;});updActBadge();}
+function renderActividad(){
+  markActividadSeen();
+  var items=DB.actividad||[];
+  var c=document.getElementById('actividadList');
+  if(!items.length){c.innerHTML='<div class="empty-state">No hay actividad registrada.</div>';return;}
+  var iconos={login_ok:'✅',login_fail:'❌',logout:'🚪',registro:'📝',session_exp:'⏰'};
+  var colores={login_ok:'#10b981',login_fail:'#ef4444',logout:'#6b7280',registro:'#3b82f6',session_exp:'#f59e0b'};
+  c.innerHTML=items.map(function(a){
+    var ic=iconos[a.tipo]||'📋';var col=colores[a.tipo]||'#6b7280';
+    return '<div style="display:flex;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg3);margin-bottom:8px;align-items:flex-start">'
+      +'<span style="font-size:20px;flex-shrink:0">'+ic+'</span>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text)">'+esc(a.usuario)+'</div>'
+      +'<div style="font-size:12px;color:var(--text2)">'+esc(a.detalle)+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">🌐 '+esc(a.ip)+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:11px;font-weight:700;color:'+col+'">'+a.fecha+'</div>'
+      +'<div style="font-size:11px;color:var(--text2)">'+a.hora+'</div>'
+      +'</div></div>';
+  }).join('');
+  saveToCloud();
+}
+async function clearActividad(){
+  showConfirm('¿Limpiar todo el registro?',async function(){
+    DB.actividad=[];updActBadge();
+    document.getElementById('actividadList').innerHTML='<div class="empty-state">No hay actividad registrada.</div>';
+    await saveToCloud();showToast('🗑️ Registro limpiado');
+  });
+}
+function checkSessionExpiry(){
+  var saved=localStorage.getItem('jvSession');if(!saved)return;
+  try{
+    var s=JSON.parse(saved);
+    if(s.loginTs&&Date.now()-s.loginTs>SESSION_HOURS*3600*1000){
+      showToast('⏰ Sesión expirada. Volvé a iniciar sesión.');
+      localStorage.removeItem('jvSession');
+      if(currentJVUser)logoutJV();else if(isAdmin||isDirectiva)exitRol();
+    }
+  }catch(e){}
+}
 
 /* ===== EDIT MENU BUTTONS ===== */
 var _btnEditorId=null,_btnEditorSection=null,_btnEditorColor='#8b5cf6';
