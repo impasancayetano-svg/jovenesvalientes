@@ -1031,8 +1031,13 @@ async function saveToCloud(){
   isSaving=true;saveQueue=false;
   setSyncBar('syncing','💾 Guardando...');
   try{
-    var payload=encodeURIComponent(JSON.stringify(DB));
-    await fetch(API_URL+'?action=save&data='+payload,{method:'GET',mode:'no-cors'});
+    var body=JSON.stringify(DB);
+    var res=await fetch(API_URL,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
+      body:body
+    });
     lastSave=Date.now();
     setSyncBar('ok','✅ Guardado');
     setTimeout(function(){setSyncBar('','');},2500);
@@ -1286,7 +1291,11 @@ function enterAdmin(){
   document.querySelectorAll('.priv-only').forEach(function(e){e.style.display='';});
   document.querySelectorAll('.jv-only').forEach(function(e){e.style.display='none';});
   document.querySelectorAll('.dir-only').forEach(function(e){e.style.display='none';});
-  document.getElementById('profileBtn').style.display='none';
+  // Ocultar botones de login, mostrar perfil admin
+  var jvBtn=document.getElementById('jvMenuBtn');if(jvBtn)jvBtn.style.display='none';
+  var dirBtn=document.getElementById('dirMenuBtn');if(dirBtn)dirBtn.style.display='none';
+  document.getElementById('profileBtn').style.display='';
+  document.getElementById('profileBtn').textContent='🔧';
   setJVCardVisible(false);
   showAdminEls();renderAll();closeModal('rolModal');closeModal('adminLoginModal');
   showSection('menu');showToast('🔧 Modo admin activado');
@@ -1349,6 +1358,8 @@ function hideAdminEls(){
   if(!isDirectiva)document.querySelectorAll('.priv-edit').forEach(function(e){e.style.display='none';});
   var hb=document.getElementById('headerBgBtns');if(hb)hb.style.display='none';
 }
+function canEdit(){return isAdmin&&!isPrev;}
+function canAdd(){return (isAdmin&&!isPrev)||isDirectiva;}
 function togglePreview(){
   if(!isAdmin)return;
   isPrev=!isPrev;
@@ -2607,6 +2618,22 @@ var EMOJIS=[
 var _pickedEmoji='😊';
 
 function openProfilePanel(){
+  // Admin sin cuenta personal
+  if(isAdmin&&!currentJVUser&&!currentDirUser){
+    // Mostrar modal simple con solo cerrar sesión
+    document.getElementById('profilePreviewEmoji').textContent='🔧';
+    document.getElementById('profilePreviewName').textContent='Administrador';
+    document.getElementById('profilePreviewUser').textContent='Modo admin';
+    document.getElementById('profilePreviewCreado').textContent='';
+    document.getElementById('profilePreviewRango').textContent='🔧 Admin';
+    document.getElementById('profilePreviewRango').style.background='rgba(245,158,11,.35)';
+    document.getElementById('profilePreviewRango').style.display='inline-block';
+    document.getElementById('profileAsisStats').innerHTML='';
+    document.getElementById('profileTopAsistencia').innerHTML='';
+    document.getElementById('emojiGrid').innerHTML='';
+    openModal('profileModal');
+    return;
+  }
   var user=currentJVUser||currentDirUser;
   if(!user)return;
   _pickedEmoji=user.emoji||'😊';
