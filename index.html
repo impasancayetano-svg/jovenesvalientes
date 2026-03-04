@@ -42,7 +42,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .sync-bar.ok{display:block;background:rgba(16,185,129,.15);color:var(--green);}
 .sync-bar.err{display:block;background:rgba(239,68,68,.15);color:var(--red);}
 .main{max-width:520px;margin:0 auto;padding:16px 12px 80px;}
-.jv-profile-card{background:linear-gradient(135deg,#1e3a8a,#1d4ed8,#3b82f6);border-radius:20px;padding:16px 18px;margin-bottom:14px;box-shadow:0 6px 28px rgba(37,99,235,.35);display:none;}
+.jv-profile-card{background:linear-gradient(135deg,#1e3a8a,#1d4ed8,#3b82f6);border-radius:20px;padding:16px 18px;margin-bottom:14px;box-shadow:0 6px 28px rgba(37,99,235,.35);display:none;transition:background .3s;}
 .jv-profile-emoji{font-size:72px;line-height:1;margin-bottom:10px;cursor:pointer;display:inline-block;transition:transform .2s;}
 .jv-profile-emoji:active{transform:scale(.88);}
 .jv-profile-name{font-size:22px;font-weight:800;color:#fff;margin-bottom:3px;}
@@ -319,11 +319,11 @@ textarea.sug-area:focus{border-color:var(--blue);}
   </div>
   <button class="menu-btn" style="background:var(--purple)" onclick="showSection('quien-trabaja')">
     <span class="btn-icon">📌</span><span class="btn-text" id="btnQuienText">¿QUIÉN TRABAJA?</span>
-    <button class="btn-edit admin-only" style="display:none" onclick="event.stopPropagation();editField('btnQuienText','Texto')">✏️</button>
+    <button class="btn-edit admin-only" style="display:none" onclick="event.stopPropagation();openBtnEditor('btnQuienText','quien-trabaja','purple')">✏️</button>
   </button>
   <button class="menu-btn" style="background:var(--pink)" onclick="showSection('fechas')">
     <span class="btn-icon">📌</span><span class="btn-text" id="btnFechasText">FECHAS Y EVENTOS</span>
-    <button class="btn-edit admin-only" style="display:none" onclick="event.stopPropagation();editField('btnFechasText','Texto')">✏️</button>
+    <button class="btn-edit admin-only" style="display:none" onclick="event.stopPropagation();openBtnEditor('btnFechasText','fechas','pink')">✏️</button>
   </button>
   <button class="menu-btn" style="background:linear-gradient(135deg,#7c3aed,#a855f7)" onclick="showSection('redes')">
     <span class="btn-icon">🌐</span><span class="btn-text">REDES SOCIALES</span>
@@ -346,12 +346,12 @@ textarea.sug-area:focus{border-color:var(--blue);}
   </button>
   <button class="menu-btn" style="background:var(--orange)" onclick="showSection('sugerencias')">
     <span class="btn-icon">💡</span><span class="btn-text" id="btnSugText">SUGERENCIAS</span>
-    <button class="btn-edit admin-only" style="display:none" onclick="event.stopPropagation();editField('btnSugText','Texto')">✏️</button>
+    <button class="btn-edit admin-only" style="display:none" onclick="event.stopPropagation();openBtnEditor('btnSugText','sugerencias','orange')">✏️</button>
   </button>
-  <button class="menu-btn" id="jvMenuBtn" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)" onclick="openJVModal()">
+  <button class="menu-btn login-btn" id="jvMenuBtn" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)" onclick="openJVModal()">
     <span class="btn-icon">⭐</span><span class="btn-text" id="jvBtnLabel">JOVEN VALIENTE</span>
   </button>
-  <button class="menu-btn" id="dirMenuBtn" style="background:var(--gray)" onclick="openRolModal()">
+  <button class="menu-btn login-btn" id="dirMenuBtn" style="background:var(--gray)" onclick="openRolModal()">
     <span class="btn-icon">🏛️</span><span class="btn-text" id="rolBtnText">DIRECTIVA</span>
   </button>
 </div>
@@ -399,8 +399,8 @@ textarea.sug-area:focus{border-color:var(--blue);}
   </div>
   <div id="asisList"></div>
   <button class="add-btn" style="background:var(--teal);margin-top:10px" onclick="openAddMiembro()">➕ AGREGAR PERSONA</button>
-  <button class="menu-btn" style="background:var(--blue);margin-top:10px" onclick="showResultados()">
-    <span class="btn-icon">📊</span><span class="btn-text">VER RESULTADOS DEL DÍA</span>
+  <button class="menu-btn" style="background:var(--blue);margin-top:10px" onclick="showHistorialDias()">
+    <span class="btn-icon">📅</span><span class="btn-text">VER HISTORIAL DE DÍAS</span>
   </button>
   <button class="menu-btn" style="background:linear-gradient(135deg,#7c3aed,#a855f7);margin-top:10px" onclick="showTopAsistencia()">
     <span class="btn-icon">🏆</span><span class="btn-text">TOP ASISTENCIA DEL AÑO</span>
@@ -672,6 +672,31 @@ textarea.sug-area:focus{border-color:var(--blue);}
   </div>
 </div>
 
+<!-- EDIT BTN MODAL -->
+<div class="modal-backdrop center" id="btnEditorModal">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Editar botón</span>
+      <button class="modal-close" onclick="closeModal('btnEditorModal')">✕</button>
+    </div>
+    <label class="modal-label">📝 Texto del botón</label>
+    <input class="modal-input" id="btnEditorText">
+    <label class="modal-label">😀 Emoji / ícono</label>
+    <input class="modal-input" id="btnEditorEmoji" placeholder="📌" style="font-size:22px;text-align:center;letter-spacing:4px">
+    <label class="modal-label">🎨 Color</label>
+    <div class="color-presets" id="btnEditorColorPicker"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <input type="color" id="btnEditorColorCustom" style="width:42px;height:42px;border:none;border-radius:10px;cursor:pointer;padding:2px;background:var(--bg3)" oninput="pickBtnEditorColor(this.value)">
+      <span style="font-size:13px;color:var(--text2)">Personalizado</span>
+      <span id="btnEditorColorHex" style="font-size:13px;font-weight:600;color:var(--text2)"></span>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn gray" onclick="closeModal('btnEditorModal')">Cancelar</button>
+      <button class="modal-btn blue" onclick="saveBtnEditor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT FIELD -->
 <div class="modal-backdrop center" id="editFieldModal">
   <div class="modal-box" onclick="event.stopPropagation()">
@@ -759,6 +784,17 @@ textarea.sug-area:focus{border-color:var(--blue);}
       <button class="modal-btn gray" onclick="closeModal('addMiembroModal')">Cancelar</button>
       <button class="modal-btn teal" onclick="saveNewMiembro()">Agregar</button>
     </div>
+  </div>
+</div>
+
+<!-- HISTORIAL DIAS MODAL -->
+<div class="modal-backdrop" id="historialModal" onclick="closeModal('historialModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="historialTitle">📅 Historial de días</span>
+      <button class="modal-close" onclick="closeModal('historialModal')">✕</button>
+    </div>
+    <div id="historialBody"></div>
   </div>
 </div>
 
@@ -1115,8 +1151,7 @@ function restoreSession(){
         document.getElementById('profileBtn').style.display='';
         refreshJVProfileCard();
         setJVCardVisible(true);
-        var jvBtn=document.getElementById('jvMenuBtn');if(jvBtn)jvBtn.style.display='none';
-        var dirBtn=document.getElementById('dirMenuBtn');if(dirBtn)dirBtn.style.display='none';
+        hideLoginBtns();
         showToast('⭐ ¡Hola de nuevo, '+jv.nombre.split(' ')[0]+'!');
       }else{localStorage.removeItem('jvSession');}
     }
@@ -1138,7 +1173,7 @@ function applyAll(){
   setTxt('titleSug',c.titleSug||'Sugerencias');
   setTxt('sugDesc',c.sugDesc||'Haceme sugerencias.');
   renderQuien();renderFechas();renderDyn();renderRedes();updBadges();
-  applyHeaderBg();
+  applyHeaderBg();applyBtnEditors();
 }
 
 /* ===== HEADER BG ===== */
@@ -1292,11 +1327,15 @@ function enterAdmin(){
   document.querySelectorAll('.jv-only').forEach(function(e){e.style.display='none';});
   document.querySelectorAll('.dir-only').forEach(function(e){e.style.display='none';});
   // Ocultar botones de login, mostrar perfil admin
-  var jvBtn=document.getElementById('jvMenuBtn');if(jvBtn)jvBtn.style.display='none';
-  var dirBtn=document.getElementById('dirMenuBtn');if(dirBtn)dirBtn.style.display='none';
+  hideLoginBtns();
   document.getElementById('profileBtn').style.display='';
   document.getElementById('profileBtn').textContent='🔧';
-  setJVCardVisible(false);
+  // Mostrar tarjeta de bienvenida admin
+  document.getElementById('jvProfileEmoji').textContent='🔧';
+  document.getElementById('jvWelcomeMsg').textContent='¡HOLA, ADMIN!';
+  document.getElementById('jvProfileName').textContent='Administrador';
+  document.getElementById('jvProfileUser').textContent='Modo edición activo';
+  setJVCardVisible(true);
   showAdminEls();renderAll();closeModal('rolModal');closeModal('adminLoginModal');
   showSection('menu');showToast('🔧 Modo admin activado');
 }
@@ -1321,8 +1360,7 @@ function enterDirectiva(cuenta){
   refreshDirProfileCard();
   setJVCardVisible(true);
   // Ocultar botones de login del menú
-  var jvBtn=document.getElementById('jvMenuBtn');if(jvBtn)jvBtn.style.display='none';
-  var dirBtn=document.getElementById('dirMenuBtn');if(dirBtn)dirBtn.style.display='none';
+  hideLoginBtns();
   hideAdminEls();renderAll();closeModal('rolModal');closeModal('directivaLoginModal');
   showSection('menu');showToast('👔 ¡Hola, '+cuenta.nombre.split(' ')[0]+'!');
 }
@@ -1340,11 +1378,12 @@ function exitRol(){
   document.getElementById('previewBtn').textContent='👁️';
   document.getElementById('profileBtn').style.display='none';
   document.getElementById('profileBtn').textContent='😊';
+  document.getElementById('jvProfileCard').style.background='';
+  document.getElementById('jvProfileCard').style.boxShadow='';
   document.querySelectorAll('.priv-only').forEach(function(e){e.style.display='none';});
   document.querySelectorAll('.priv-edit').forEach(function(e){e.style.display='none';});
   document.querySelectorAll('.dir-only').forEach(function(e){e.style.display='none';});
-  var jvBtn=document.getElementById('jvMenuBtn');if(jvBtn)jvBtn.style.display='';
-  var dirBtn=document.getElementById('dirMenuBtn');if(dirBtn)dirBtn.style.display='';
+  showLoginBtns();
   if(currentJVUser)document.querySelectorAll('.jv-only').forEach(function(e){e.style.display='';});
   hideAdminEls();renderAll();closeModal('rolModal');showSection('menu');showToast('Saliste del modo actual');
 }
@@ -1360,6 +1399,8 @@ function hideAdminEls(){
 }
 function canEdit(){return isAdmin&&!isPrev;}
 function canAdd(){return (isAdmin&&!isPrev)||isDirectiva;}
+function hideLoginBtns(){document.querySelectorAll('.login-btn').forEach(function(e){e.style.display='none';});}
+function showLoginBtns(){document.querySelectorAll('.login-btn').forEach(function(e){e.style.display='';});}
 function togglePreview(){
   if(!isAdmin)return;
   isPrev=!isPrev;
@@ -1421,8 +1462,7 @@ function doJVLogin(){
       document.getElementById('profileBtn').style.display='';
       refreshJVProfileCard();
       setJVCardVisible(true);
-      var jvBtn=document.getElementById('jvMenuBtn');if(jvBtn)jvBtn.style.display='none';
-      var dirBtn=document.getElementById('dirMenuBtn');if(dirBtn)dirBtn.style.display='none';
+      hideLoginBtns();
     }
     closeModal('jvModal');
     showSection('menu');
@@ -1441,8 +1481,7 @@ function logoutJV(){
   document.getElementById('profileBtn').style.display='none';
   document.getElementById('profileBtn').textContent='😊';
   setJVCardVisible(false);
-  var jvBtn=document.getElementById('jvMenuBtn');if(jvBtn)jvBtn.style.display='';
-  var dirBtn=document.getElementById('dirMenuBtn');if(dirBtn)dirBtn.style.display='';
+  showLoginBtns();
   closeModal('jvModal');showSection('menu');showToast('Sesión cerrada');
 }
 function openDelMiembroModal(){
@@ -1606,7 +1645,66 @@ function pickRedColor(c){
 }
 
 
-/* ===== RANGO ===== */
+/* ===== EDIT MENU BUTTONS ===== */
+var _btnEditorId=null,_btnEditorSection=null,_btnEditorColor='#8b5cf6';
+var BTN_COLORS=['#8b5cf6','#ec4899','#3b82f6','#f59e0b','#10b981','#ef4444','#f97316','#06b6d4','#7c3aed','#6b7280'];
+function openBtnEditor(textId, section, colorKey){
+  _btnEditorId=textId;_btnEditorSection=section;
+  // Leer color actual del botón padre
+  var btn=document.getElementById(textId)&&document.getElementById(textId).closest('.menu-btn');
+  var curColor=DB.config['btnColor_'+textId]||BTN_COLORS[0];
+  _btnEditorColor=curColor;
+  document.getElementById('btnEditorText').value=document.getElementById(textId).textContent;
+  document.getElementById('btnEditorEmoji').value=DB.config['btnIcon_'+textId]||'';
+  document.getElementById('btnEditorColorCustom').value=curColor;
+  document.getElementById('btnEditorColorHex').textContent=curColor;
+  document.getElementById('btnEditorColorPicker').innerHTML=BTN_COLORS.map(function(c){
+    return '<div class="color-chip'+(c===curColor?' selected':'')+'" style="background:'+c+'" onclick="pickBtnEditorColor(\''+c+'\')"></div>';
+  }).join('');
+  openModal('btnEditorModal');
+  setTimeout(function(){document.getElementById('btnEditorText').focus();},100);
+}
+function pickBtnEditorColor(c){
+  _btnEditorColor=c;
+  document.getElementById('btnEditorColorCustom').value=c;
+  document.getElementById('btnEditorColorHex').textContent=c;
+  document.getElementById('btnEditorColorPicker').innerHTML=BTN_COLORS.map(function(col){
+    return '<div class="color-chip'+(col===c?' selected':'')+'" style="background:'+col+'" onclick="pickBtnEditorColor(\''+col+'\')"></div>';
+  }).join('');
+}
+async function saveBtnEditor(){
+  var txt=document.getElementById('btnEditorText').value.trim();
+  var emoji=document.getElementById('btnEditorEmoji').value.trim();
+  if(!txt)return;
+  if(!DB.config)DB.config={};
+  DB.config[_btnEditorId]=txt;
+  DB.config['btnColor_'+_btnEditorId]=_btnEditorColor;
+  DB.config['btnIcon_'+_btnEditorId]=emoji;
+  setTxt(_btnEditorId,txt);
+  // Aplicar color e ícono al botón
+  var el=document.getElementById(_btnEditorId);
+  if(el){
+    var btn=el.closest('.menu-btn');
+    if(btn)btn.style.background=_btnEditorColor;
+    var icon=btn&&btn.querySelector('.btn-icon');
+    if(icon&&emoji)icon.textContent=emoji;
+  }
+  closeModal('btnEditorModal');
+  await saveToCloud();showToast('✅ Botón actualizado');
+}
+function applyBtnEditors(){
+  var c=DB.config||{};
+  ['btnQuienText','btnFechasText','btnSugText'].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    if(c[id])el.textContent=c[id];
+    var btn=el.closest('.menu-btn');
+    if(btn&&c['btnColor_'+id])btn.style.background=c['btnColor_'+id];
+    var icon=btn&&btn.querySelector('.btn-icon');
+    if(icon&&c['btnIcon_'+id])icon.textContent=c['btnIcon_'+id];
+  });
+}
+
+
 function calcRango(pct, totalEventos){
   if(totalEventos===0)return{label:'Joven Valiente',color:'#6b7280',icon:'⭐'};
   if(pct>=95)return{label:'Constante de Oro',color:'#f59e0b',icon:'🥇'};
@@ -2495,8 +2593,54 @@ async function saveNewMiembro(){
 }
 
 /* ===== RESULTADOS ===== */
-function showResultados(){
-  var date=document.getElementById('asisDate').value;
+function showHistorialDias(){
+  var anio=getSelectedYear();
+  var asis=DB.asistencia||{};
+  var members=getAsisMiembros();
+  // Obtener todas las fechas del año con al menos un registro
+  var fechas=Object.keys(asis).filter(function(d){
+    if(!d.startsWith(anio+''))return false;
+    var day=asis[d];
+    return members.some(function(m){return day[m]==='present'||day[m]==='absent';});
+  }).sort().reverse(); // más reciente primero
+  setTxt('historialTitle','📅 Historial '+anio+' ('+fechas.length+' días)');
+  if(!fechas.length){
+    document.getElementById('historialBody').innerHTML='<div class="empty-state">No hay registros en '+anio+'.</div>';
+    openModal('historialModal');return;
+  }
+  var html='';
+  for(var i=0;i<fechas.length;i++){
+    var d=fechas[i];
+    var day=asis[d]||{};
+    var p=members.filter(function(m){return day[m]==='present';}).length;
+    var a=members.filter(function(m){return day[m]==='absent';}).length;
+    var total=p+a;
+    var pct=total>0?Math.round(p/total*100):0;
+    var dobj=new Date(d+'T12:00:00');
+    var dstr=dobj.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+    html+='<div onclick="openResultadosDia(\''+d+'\')" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;background:var(--bg3);margin-bottom:8px;cursor:pointer;transition:background .15s" onmouseenter="this.style.background=\'var(--bg2)\'" onmouseleave="this.style.background=\'var(--bg3)\'">'
+      +'<div style="font-size:22px">📅</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:14px;font-weight:700;color:var(--text);text-transform:capitalize">'+dstr+'</div>'
+      +'<div style="font-size:12px;color:var(--text2);margin-top:2px">'+p+' presentes · '+a+' ausentes</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:17px;font-weight:800;color:'+(pct>=70?'#10b981':pct>=50?'#f59e0b':'#ef4444')+'">'+pct+'%</div>'
+      +'<div style="font-size:10px;color:var(--text2)">asistencia</div>'
+      +'</div>'
+      +'<div style="font-size:16px;color:var(--text2)">›</div>'
+      +'</div>';
+  }
+  document.getElementById('historialBody').innerHTML=html;
+  openModal('historialModal');
+}
+function openResultadosDia(date){
+  closeModal('historialModal');
+  // Pequeño delay para que se cierre primero
+  setTimeout(function(){showResultados(date);},180);
+}
+function showResultados(date){
+  if(!date)date=document.getElementById('asisDate').value;
   if(!date){showToast('Elegí una fecha primero');return;}
   var members=getAsisMiembros();
   if(!members.length){showToast('No hay personas en la lista');return;}
@@ -2728,7 +2872,7 @@ async function saveProfileEmoji(){
     var dir=(DB.cuentas||[]).find(function(x){return x.usuario===currentDirUser.usuario;});
     if(dir){dir.emoji=_pickedEmoji;currentDirUser=dir;}
     else{currentDirUser.emoji=_pickedEmoji;}
-    refreshDirProfileBtn();
+    refreshDirProfileCard();
   }
   closeModal('profileModal');
   await saveToCloud();
@@ -2756,6 +2900,8 @@ function refreshDirProfileCard(){
   document.getElementById('jvProfileUser').textContent='@'+currentDirUser.usuario;
   document.getElementById('jvWelcomeMsg').textContent='¡HOLA, '+currentDirUser.nombre.split(' ')[0].toUpperCase()+'!';
   document.getElementById('profileBtn').textContent=e;
+  document.getElementById('jvProfileCard').style.background='linear-gradient(135deg,#0f4c3a,#0f766e,#0d9488)';
+  document.getElementById('jvProfileCard').style.boxShadow='0 6px 28px rgba(13,148,136,.35)';
 }
 function setJVCardVisible(show){
   document.getElementById('jvProfileCard').style.display=show?'block':'none';
