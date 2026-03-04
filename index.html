@@ -41,6 +41,15 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .sync-bar.syncing{display:block;background:rgba(59,130,246,.15);color:var(--blue);}
 .sync-bar.ok{display:block;background:rgba(16,185,129,.15);color:var(--green);}
 .sync-bar.err{display:block;background:rgba(239,68,68,.15);color:var(--red);}
+/* Animación envío */
+@keyframes spinArc{to{transform:rotate(360deg)}}
+@keyframes sendPop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.send-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:14px;}
+.send-spinner{width:52px;height:52px;border:4px solid var(--bg3);border-top-color:var(--blue);border-radius:50%;animation:spinArc .7s linear infinite;}
+.send-spinner.green{border-top-color:var(--green);}
+.send-success-icon{font-size:60px;animation:sendPop .4s cubic-bezier(.34,1.56,.64,1) forwards;}
+.send-loading-text{font-size:14px;font-weight:700;color:var(--text2);}
+
 .main{max-width:520px;margin:0 auto;padding:16px 12px 80px;}
 .jv-profile-card{background:linear-gradient(135deg,#1e3a8a,#1d4ed8,#3b82f6);border-radius:20px;padding:16px 18px;margin-bottom:14px;box-shadow:0 6px 28px rgba(37,99,235,.35);display:none;transition:background .3s;}
 .jv-profile-emoji{font-size:72px;line-height:1;margin-bottom:10px;cursor:pointer;display:inline-block;transition:transform .2s;}
@@ -64,6 +73,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 @keyframes btnPop{0%{transform:scale(1)}40%{transform:scale(.95)}70%{transform:scale(1.03)}100%{transform:scale(1)}}
 @keyframes btnShine{0%{left:-75%}100%{left:130%}}
 @keyframes fadeInUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
 .menu-btn{width:100%;border:none;border-radius:16px;padding:16px 18px;font-family:'Outfit',sans-serif;font-size:17px;font-weight:700;color:#fff;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);transition:transform .18s,box-shadow .18s,opacity .18s;text-align:left;min-height:58px;overflow:hidden;position:relative;}
 .menu-btn::after{content:'';position:absolute;top:0;left:-75%;width:50%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-20deg);pointer-events:none;}
 .menu-btn:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 8px 28px rgba(0,0,0,.35);}
@@ -250,6 +260,10 @@ textarea.sug-area:focus{border-color:var(--blue);}
 <div class="topbar">
   <span class="topbar-title" id="topbarTitle">JÓVENES VALIENTES</span>
   <div class="topbar-btns">
+    <div id="onlineChip" style="display:none;align-items:center;gap:4px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:700;color:#10b981;cursor:default" title="Personas viendo la app ahora">
+      <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite"></span>
+      <span id="onlineCount">0</span>
+    </div>
     <button class="tbtn" onclick="toggleTheme()" id="themeBtn">☀️</button>
     <button class="tbtn" id="profileBtn" style="display:none;font-size:22px" onclick="openProfilePanel()">😊</button>
     <button class="tbtn" onclick="togglePreview()" id="previewBtn" style="display:none">🙈</button>
@@ -613,6 +627,35 @@ textarea.sug-area:focus{border-color:var(--blue);}
   </div>
 </div>
 
+<!-- ACEPTAR SOLICITUD MODAL -->
+<div class="modal-backdrop center" id="aceptarSolModal">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">✅ Aceptar solicitud</span>
+      <button class="modal-close" onclick="closeModal('aceptarSolModal')">✕</button>
+    </div>
+    <div style="background:var(--bg3);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:28px">👤</span>
+      <div>
+        <div style="font-size:15px;font-weight:800;color:var(--text)" id="aceptarNombreInfo"></div>
+        <div style="font-size:12px;color:var(--text2)" id="aceptarUserInfo"></div>
+      </div>
+    </div>
+    <label class="modal-label">🔗 Vincular con nombre de asistencia</label>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">Elegí un nombre existente, agregá uno nuevo, o dejalo sin vincular.</p>
+    <select class="modal-select" id="aceptarVinculoSelect" onchange="onAceptarVinculoChange()"></select>
+    <div id="aceptarNuevoWrap" style="display:none;margin-top:10px">
+      <label class="modal-label">📝 Nombre para la lista de asistencia</label>
+      <input class="modal-input" id="aceptarNuevoNombre" placeholder="Nombre y apellido">
+    </div>
+    <div class="err-msg" id="aceptarErr" style="display:none"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="modal-btn gray" onclick="closeModal('aceptarSolModal')">Cancelar</button>
+      <button class="modal-btn teal" onclick="confirmarAceptar()">✅ Confirmar y crear cuenta</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOP ASISTENCIA MODAL -->
 <div class="modal-backdrop" id="topAsistenciaModal" onclick="closeModal('topAsistenciaModal')">
   <div class="modal-box" onclick="event.stopPropagation()">
@@ -811,26 +854,66 @@ textarea.sug-area:focus{border-color:var(--blue);}
 
 <!-- CONFIG -->
 <div class="modal-backdrop center" id="configModal">
-  <div class="modal-box" onclick="event.stopPropagation()">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
     <div class="modal-header">
-      <span class="modal-title">⚙️ Configuración</span>
+      <span class="modal-title">⚙️ Panel Admin</span>
       <button class="modal-close" onclick="closeModal('configModal')">✕</button>
     </div>
-    <label class="modal-label">Nombre del grupo</label><input class="modal-input" id="cfgName">
-    <label class="modal-label">Dirección</label><input class="modal-input" id="cfgAddr">
-    <label class="modal-label">Alias</label><input class="modal-input" id="cfgAlias">
+
+    <!-- GRUPO -->
+    <div style="font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.6px;margin-bottom:8px">✏️ EDITAR GRUPO</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button class="add-btn" style="margin:0;background:var(--bg3);color:var(--text);font-size:13px" onclick="closeModal('configModal');editField('groupName','Nombre del grupo')">📝 Nombre</button>
+      <button class="add-btn" style="margin:0;background:var(--bg3);color:var(--text);font-size:13px" onclick="closeModal('configModal');editField('groupDesc','Descripción')">💬 Descripción</button>
+      <button class="add-btn" style="margin:0;background:var(--bg3);color:var(--text);font-size:13px" onclick="closeModal('configModal');editField('groupAddr','Dirección')">📍 Dirección</button>
+      <button class="add-btn" style="margin:0;background:var(--bg3);color:var(--text);font-size:13px" onclick="closeModal('configModal');editField('groupAlias','Alias')">🏷️ Alias</button>
+    </div>
+
     <div class="divider"></div>
-    <label class="modal-label">🔐 Cambiar contraseña admin</label>
+
+    <!-- CONTENIDO -->
+    <div style="font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.6px;margin-bottom:8px">📋 CONTENIDO</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button class="add-btn" style="margin:0;background:var(--purple);font-size:13px" onclick="closeModal('configModal');addItem('quien')">📌 + ¿Quién trabaja?</button>
+      <button class="add-btn" style="margin:0;background:var(--pink);font-size:13px" onclick="closeModal('configModal');addItem('fechas')">📅 + Fecha/Evento</button>
+      <button class="add-btn" style="margin:0;background:linear-gradient(135deg,#7c3aed,#a855f7);font-size:13px" onclick="closeModal('configModal');openAddRed()">🌐 + Red social</button>
+      <button class="add-btn" style="margin:0;background:var(--green);font-size:13px" onclick="closeModal('configModal');openAddDyn()">➕ + Botón menú</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ASISTENCIA -->
+    <div style="font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.6px;margin-bottom:8px">📊 ASISTENCIA</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button class="add-btn" style="margin:0;background:var(--teal);font-size:13px" onclick="closeModal('configModal');showSection('asistencia')">📋 Ir a Asistencia</button>
+      <button class="add-btn" style="margin:0;background:var(--teal);font-size:13px" onclick="closeModal('configModal');openAddMiembro()">👤 + Persona</button>
+      <button class="add-btn" style="margin:0;background:var(--red);font-size:13px" onclick="closeModal('configModal');openDelMiembroModal()">🗑️ Eliminar persona</button>
+      <button class="add-btn" style="margin:0;background:linear-gradient(135deg,#7c3aed,#a855f7);font-size:13px" onclick="closeModal('configModal');showTopAsistencia()">🏆 Top asistencia</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- CUENTAS -->
+    <div style="font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.6px;margin-bottom:8px">👥 CUENTAS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button class="add-btn" style="margin:0;background:var(--teal);font-size:13px" onclick="closeModal('configModal');showSection('cuentas')">👔 Directiva</button>
+      <button class="add-btn" style="margin:0;background:linear-gradient(135deg,#1d4ed8,#7c3aed);font-size:13px" onclick="closeModal('configModal');showSection('cuentas-jv')">⭐ Jóvenes Valientes</button>
+      <button class="add-btn" style="margin:0;background:var(--orange);font-size:13px;grid-column:span 2" onclick="closeModal('configModal');showSection('solicitudes-jv')">📨 Solicitudes JV <span id="cfgSolBadge" style="background:rgba(255,255,255,.3);border-radius:99px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SEGURIDAD -->
+    <div style="font-size:11px;font-weight:800;color:var(--text2);letter-spacing:.6px;margin-bottom:8px">🔐 SEGURIDAD</div>
+    <label class="modal-label">Cambiar contraseña admin</label>
     <div class="pwd-wrap"><input class="modal-input" type="password" id="cfgPwdCurrent" placeholder="Contraseña actual"><button class="pwd-eye" id="eyeCfg1" onclick="toggleEye('cfgPwdCurrent','eyeCfg1')">🙈</button></div>
     <div class="pwd-wrap"><input class="modal-input" type="password" id="cfgPwdNew" placeholder="Nueva contraseña"><button class="pwd-eye" id="eyeCfg2" onclick="toggleEye('cfgPwdNew','eyeCfg2')">🙈</button></div>
     <div class="pwd-wrap"><input class="modal-input" type="password" id="cfgPwdConfirm" placeholder="Confirmar nueva contraseña"><button class="pwd-eye" id="eyeCfg3" onclick="toggleEye('cfgPwdConfirm','eyeCfg3')">🙈</button></div>
     <div class="err-msg" id="cfgPwdErr"></div>
-    <div class="divider"></div>
-    <button class="add-btn" style="margin-top:0;margin-bottom:6px;background:var(--teal)" onclick="closeModal('configModal');showSection('cuentas')">👥 Cuentas Directiva</button>
-    <button class="add-btn" style="margin-top:0;margin-bottom:6px;background:linear-gradient(135deg,#1d4ed8,#7c3aed)" onclick="closeModal('configModal');showSection('cuentas-jv')">⭐ Cuentas Joven Valiente</button>
-    <div class="modal-actions">
-      <button class="modal-btn gray" onclick="closeModal('configModal')">Cancelar</button>
-      <button class="modal-btn blue" onclick="saveConfig()">Guardar</button>
+
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="modal-btn gray" onclick="closeModal('configModal')">Cerrar</button>
+      <button class="modal-btn blue" onclick="saveConfig()">🔐 Guardar contraseña</button>
     </div>
   </div>
 </div>
@@ -1065,22 +1148,15 @@ async function loadFromCloud(){
 async function saveToCloud(){
   if(isSaving){saveQueue=true;return;}
   isSaving=true;saveQueue=false;
-  setSyncBar('syncing','💾 Guardando...');
+  cleanPresence();
   try{
     var body=JSON.stringify(DB);
-    var res=await fetch(API_URL,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:body
-    });
+    await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body});
     lastSave=Date.now();
-    setSyncBar('ok','✅ Guardado');
-    setTimeout(function(){setSyncBar('','');},2500);
-    showToast('✅ Guardado');
+    setSyncBar('',''); // silencioso en guardado normal
   }catch(e){
     setSyncBar('err','❌ Error al guardar');
-    showToast('❌ Error al guardar');
+    setTimeout(function(){setSyncBar('','');},3000);
   }
   isSaving=false;
   if(saveQueue)saveToCloud();
@@ -1115,8 +1191,8 @@ window.addEventListener('DOMContentLoaded',async function(){
   document.getElementById('asisDate').value=today;
   startAutoRefresh();
   initCropEvents();
-  // Restaurar sesión guardada
   restoreSession();
+  startPresence();
   document.addEventListener('keydown',function(e){
     if(e.key==='Enter'){
       var fn=e.target.getAttribute('data-enter');
@@ -1246,12 +1322,90 @@ async function removeHeaderBg(){
 }
 
 
+/* ===== TEMA - guardar por usuario ===== */
 function toggleTheme(){
   document.body.classList.toggle('light');
-  localStorage.setItem('theme',document.body.classList.contains('light')?'light':'dark');
+  var t=document.body.classList.contains('light')?'light':'dark';
+  localStorage.setItem('theme',t); // global fallback
+  // Guardar por usuario si hay sesión
+  var uid=currentJVUser?currentJVUser.usuario:(currentDirUser?currentDirUser.usuario:(isAdmin?'admin':null));
+  if(uid)localStorage.setItem('theme_'+uid,t);
   updThemeBtn();
 }
 function updThemeBtn(){document.getElementById('themeBtn').textContent=document.body.classList.contains('light')?'🌙':'☀️';}
+function applyThemeForUser(uid){
+  var t=uid?localStorage.getItem('theme_'+uid):null;
+  if(!t)t=localStorage.getItem('theme')||'dark';
+  document.body.classList.toggle('light',t==='light');
+  updThemeBtn();
+}
+
+/* ===== PRESENCIA ONLINE ===== */
+var _presenceId=null;
+var _presenceInterval=null;
+var _onlineInterval=null;
+function getPresenceId(){
+  if(_presenceId)return _presenceId;
+  var id=localStorage.getItem('presenceId');
+  if(!id){id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);localStorage.setItem('presenceId',id);}
+  _presenceId=id;return id;
+}
+function startPresence(){
+  pingPresence();
+  _presenceInterval=setInterval(pingPresence,25000); // ping cada 25s
+}
+function stopPresence(){
+  if(_presenceInterval)clearInterval(_presenceInterval);
+  if(_onlineInterval)clearInterval(_onlineInterval);
+  // Marcar como offline
+  if(!DB.presence)DB.presence={};
+  delete DB.presence[getPresenceId()];
+}
+function pingPresence(){
+  if(!DB.presence)DB.presence={};
+  var label='visitante';
+  if(isAdmin)label='admin';
+  else if(isDirectiva&&currentDirUser)label=currentDirUser.nombre.split(' ')[0];
+  else if(currentJVUser)label=currentJVUser.nombre.split(' ')[0];
+  DB.presence[getPresenceId()]={ts:Date.now(),label:label};
+  // No guardar en cloud con saveToCloud normal para no spamear — guardar silencioso
+  try{
+    var body=JSON.stringify(DB);
+    fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body});
+  }catch(e){}
+}
+function startOnlineCounter(){
+  if(_onlineInterval)clearInterval(_onlineInterval);
+  _onlineInterval=setInterval(pollOnlineCount,30000);
+  pollOnlineCount();
+}
+async function pollOnlineCount(){
+  if(!isAdmin)return;
+  try{
+    var res=await fetch(API_URL+'?t='+Date.now());
+    var text=await res.text();
+    var d=JSON.parse(text);
+    if(d&&d.presence){
+      var now=Date.now();
+      var alive=Object.values(d.presence).filter(function(p){return now-p.ts<60000;});
+      document.getElementById('onlineCount').textContent=alive.length;
+      var chip=document.getElementById('onlineChip');
+      chip.style.display='flex';
+      chip.title=alive.map(function(p){return p.label;}).join(', ')||'Nadie más';
+    }
+  }catch(e){}
+}
+function showOnlineChip(show){
+  document.getElementById('onlineChip').style.display=show?'flex':'none';
+}
+// Limpiar presencia antigua al guardar DB
+function cleanPresence(){
+  if(!DB.presence)return;
+  var now=Date.now();
+  Object.keys(DB.presence).forEach(function(k){
+    if(now-DB.presence[k].ts>90000)delete DB.presence[k];
+  });
+}
 
 /* ===== SECTIONS ===== */
 function showSection(n){
@@ -1330,12 +1484,14 @@ function enterAdmin(){
   hideLoginBtns();
   document.getElementById('profileBtn').style.display='';
   document.getElementById('profileBtn').textContent='🔧';
-  // Mostrar tarjeta de bienvenida admin
   document.getElementById('jvProfileEmoji').textContent='🔧';
   document.getElementById('jvWelcomeMsg').textContent='¡HOLA, ADMIN!';
   document.getElementById('jvProfileName').textContent='Administrador';
   document.getElementById('jvProfileUser').textContent='Modo edición activo';
   setJVCardVisible(true);
+  showOnlineChip(true);
+  startOnlineCounter();
+  applyThemeForUser('admin');
   showAdminEls();renderAll();closeModal('rolModal');closeModal('adminLoginModal');
   showSection('menu');showToast('🔧 Modo admin activado');
 }
@@ -1363,6 +1519,7 @@ function enterDirectiva(cuenta){
   setJVCardVisible(true);
   hideLoginBtns();
   hideAdminEls();renderAll();closeModal('rolModal');closeModal('directivaLoginModal');
+  applyThemeForUser(cuenta.usuario);
   showSection('menu');showToast('👔 ¡Hola, '+cuenta.nombre.split(' ')[0]+'!');
 }
 function exitRol(){
@@ -1381,12 +1538,16 @@ function exitRol(){
   document.getElementById('profileBtn').textContent='😊';
   document.getElementById('jvProfileCard').style.background='';
   document.getElementById('jvProfileCard').style.boxShadow='';
+  showOnlineChip(false);
+  if(_onlineInterval){clearInterval(_onlineInterval);_onlineInterval=null;}
   document.querySelectorAll('.priv-only').forEach(function(e){e.style.display='none';});
   document.querySelectorAll('.priv-edit').forEach(function(e){e.style.display='none';});
   document.querySelectorAll('.dir-only').forEach(function(e){e.style.display='none';});
   showLoginBtns();
   if(currentJVUser)document.querySelectorAll('.jv-only').forEach(function(e){e.style.display='';});
-  hideAdminEls();renderAll();closeModal('rolModal');showSection('menu');showToast('Saliste del modo actual');
+  hideAdminEls();renderAll();closeModal('rolModal');showSection('menu');
+  applyThemeForUser(null); // restaurar tema global
+  showToast('Saliste del modo actual');
 }
 function showAdminEls(){
   document.querySelectorAll('.admin-only').forEach(function(e){e.style.display='';});
@@ -1467,6 +1628,7 @@ function doJVLogin(){
     }
     closeModal('jvModal');
     showSection('menu');
+    applyThemeForUser(currentJVUser.usuario);
     showToast('⭐ ¡Hola, '+currentJVUser.nombre.split(' ')[0]+'!');
   }else{
     document.getElementById('jvLErr').style.display='block';
@@ -1560,15 +1722,22 @@ async function doJVRegister(){
   if(all.find(function(c){return c.usuario.toLowerCase()===usuario.toLowerCase();})){
     err.textContent='Ese usuario ya existe o tiene una solicitud pendiente.';err.style.display='block';return;
   }
+  // Animación de carga
+  document.getElementById('jvModalBody').innerHTML='<div class="send-loading">'
+    +'<div class="send-spinner"></div>'
+    +'<div class="send-loading-text">Enviando solicitud...</div>'
+    +'</div>';
   if(!DB.solicitudesJV)DB.solicitudesJV=[];
   DB.solicitudesJV.push({nombre:nombre,usuario:usuario,password:password,fecha:new Date().toISOString()});
   await saveToCloud();
   updBadges();
-  document.getElementById('jvModalBody').innerHTML='<div style="text-align:center;padding:16px 0">'
-    +'<div style="font-size:56px;margin-bottom:12px">✅</div>'
-    +'<div style="font-size:18px;font-weight:800;margin-bottom:8px">¡Solicitud enviada!</div>'
-    +'<div style="font-size:13px;color:var(--text2);margin-bottom:20px">Un admin la revisará pronto.</div>'
-    +'<button class="modal-btn gray" onclick="closeModal(\'jvModal\')">Cerrar</button>'
+  // Animación de éxito
+  document.getElementById('jvModalBody').innerHTML='<div class="send-loading">'
+    +'<div class="send-success-icon">✅</div>'
+    +'<div style="font-size:18px;font-weight:800;color:var(--text)">¡Solicitud enviada!</div>'
+    +'<div style="font-size:13px;color:var(--text2);text-align:center;line-height:1.5">Un admin la revisará pronto.<br>Te avisarán cuando tu cuenta esté lista.</div>'
+    +'<button class="modal-btn gray" style="margin-top:4px" onclick="closeModal(\'jvModal\')">Cerrar</button>'
+    +'<button class="modal-btn blue" style="margin-top:4px" onclick="closeModal(\'jvModal\');showSection(\'menu\')">← Ir al menú</button>'
     +'</div>';
 }
 
@@ -1881,14 +2050,58 @@ function renderSolicitudes(){
   }
   c.innerHTML=html;
 }
-async function aceptarSolicitud(idx){
+var _aceptarIdx=null;
+function aceptarSolicitud(idx){
+  _aceptarIdx=idx;
   var s=DB.solicitudesJV[idx];
+  // Llenar info del solicitante
+  document.getElementById('aceptarNombreInfo').textContent=s.nombre;
+  document.getElementById('aceptarUserInfo').textContent='@'+s.usuario;
+  // Llenar select de miembros existentes
+  var miembros=getAsisMiembros().slice().sort(function(a,b){return a.localeCompare(b,'es');});
+  var sel=document.getElementById('aceptarVinculoSelect');
+  sel.innerHTML='<option value="">— Sin vincular por ahora —</option>'
+    +'<option value="__nuevo__">➕ Agregar nuevo nombre de asistencia</option>';
+  miembros.forEach(function(m){
+    var opt=document.createElement('option');
+    opt.value=m; opt.textContent=m;
+    // Pre-seleccionar si el nombre coincide
+    if(m.toLowerCase()===s.nombre.toLowerCase())opt.selected=true;
+    sel.appendChild(opt);
+  });
+  document.getElementById('aceptarNuevoWrap').style.display='none';
+  document.getElementById('aceptarNuevoNombre').value=s.nombre; // sugerir nombre del solicitante
+  openModal('aceptarSolModal');
+}
+async function confirmarAceptar(){
+  var idx=_aceptarIdx;
+  var s=DB.solicitudesJV[idx];
+  var sel=document.getElementById('aceptarVinculoSelect');
+  var vinculo=sel.value||null;
+  var nuevoNombre=document.getElementById('aceptarNuevoNombre').value.trim();
+  // Si eligió agregar nuevo, crear miembro de asistencia
+  if(vinculo==='__nuevo__'){
+    if(!nuevoNombre){document.getElementById('aceptarErr').textContent='Escribí el nombre.';document.getElementById('aceptarErr').style.display='block';return;}
+    var miembros=getAsisMiembros();
+    if(!miembros.includes(nuevoNombre)){
+      if(!DB.asisMiembros)DB.asisMiembros=[];
+      DB.asisMiembros.push(nuevoNombre);
+    }
+    vinculo=nuevoNombre;
+  }
+  document.getElementById('aceptarErr').style.display='none';
   if(!DB.jvCuentas)DB.jvCuentas=[];
-  DB.jvCuentas.push({nombre:s.nombre,usuario:s.usuario,password:s.password,vinculo:null,creado:new Date().toISOString(),lastLogin:null});
+  DB.jvCuentas.push({nombre:s.nombre,usuario:s.usuario,password:s.password,vinculo:vinculo||null,creado:new Date().toISOString(),lastLogin:null,emoji:'😊'});
   DB.solicitudesJV.splice(idx,1);
+  closeModal('aceptarSolModal');
   updBadges();renderSolicitudes();
   await saveToCloud();
-  showToast('✅ Cuenta creada para '+s.nombre);
+  showToast('✅ Cuenta creada'+(vinculo?' y vinculada con "'+vinculo+'"':''));
+}
+function onAceptarVinculoChange(){
+  var val=document.getElementById('aceptarVinculoSelect').value;
+  document.getElementById('aceptarNuevoWrap').style.display=val==='__nuevo__'?'block':'none';
+  document.getElementById('aceptarErr').style.display='none';
 }
 function rechazarSolicitud(idx){
   var s=DB.solicitudesJV[idx];
@@ -1986,36 +2199,30 @@ async function confirmDelJV(){
 
 /* ===== CONFIG ===== */
 function openConfig(){
-  var c=DB.config||{};
-  document.getElementById('cfgName').value=c.groupName||'';
-  document.getElementById('cfgAddr').value=c.groupAddr||'';
-  document.getElementById('cfgAlias').value=c.groupAlias||'';
   ['cfgPwdCurrent','cfgPwdNew','cfgPwdConfirm'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('cfgPwdErr').style.display='none';
+  // Mostrar badge de solicitudes pendientes
+  var nsol=(DB.solicitudesJV||[]).length;
+  var badge=document.getElementById('cfgSolBadge');
+  if(badge)badge.textContent=nsol>0?nsol:'';
   openModal('configModal');
 }
 async function saveConfig(){
-  var n=document.getElementById('cfgName').value.trim();
-  if(!n)return;
   var curr=document.getElementById('cfgPwdCurrent').value;
   var newP=document.getElementById('cfgPwdNew').value;
   var conf=document.getElementById('cfgPwdConfirm').value;
   var err=document.getElementById('cfgPwdErr');
   err.style.display='none';
-  if(curr||newP||conf){
-    if(curr!==ADMIN_PWD){err.textContent='La contraseña actual es incorrecta.';err.style.display='block';return;}
-    if(!newP){err.textContent='Ingresá la nueva contraseña.';err.style.display='block';return;}
-    if(newP!==conf){err.textContent='Las contraseñas no coinciden.';err.style.display='block';return;}
-    if(newP.length<4){err.textContent='Mínimo 4 caracteres.';err.style.display='block';return;}
-    ADMIN_PWD=newP;DB.config.adminPwd=newP;
-    showToast('🔐 Contraseña actualizada');
-  }
-  DB.config.groupName=n;
-  DB.config.groupAddr=document.getElementById('cfgAddr').value.trim();
-  DB.config.groupAlias=document.getElementById('cfgAlias').value.trim();
+  if(!curr&&!newP&&!conf){closeModal('configModal');return;}
+  if(curr!==ADMIN_PWD){err.textContent='La contraseña actual es incorrecta.';err.style.display='block';return;}
+  if(!newP){err.textContent='Ingresá la nueva contraseña.';err.style.display='block';return;}
+  if(newP!==conf){err.textContent='Las contraseñas no coinciden.';err.style.display='block';return;}
+  if(newP.length<4){err.textContent='Mínimo 4 caracteres.';err.style.display='block';return;}
+  ADMIN_PWD=newP;DB.config.adminPwd=newP;
   ['cfgPwdCurrent','cfgPwdNew','cfgPwdConfirm'].forEach(function(id){document.getElementById(id).value='';});
-  applyAll();closeModal('configModal');
+  closeModal('configModal');
   await saveToCloud();
+  showToast('🔐 Contraseña actualizada');
 }
 
 /* ===== CUENTAS DIRECTIVA ===== */
@@ -2681,17 +2888,30 @@ function confirmSend(){
   var t=document.getElementById('sugArea').value.trim();
   if(!t){document.getElementById('sugErr').style.display='block';return;}
   document.getElementById('sugErr').style.display='none';
-  showConfirm('¿Confirmas enviar esta sugerencia?',function(){doSend(t);},'blue','Enviar');
+  doSend(t);
 }
 async function doSend(t){
+  // Animación de carga — ocultar formulario y mostrar spinner
+  document.getElementById('sugFormArea').style.display='none';
+  document.getElementById('sugBackBtn').style.display='none';
+  var okEl=document.getElementById('sugOk');
+  okEl.style.display='block';
+  okEl.innerHTML='<div class="send-loading"><div class="send-spinner"></div><div class="send-loading-text">Enviando sugerencia...</div></div>';
   var now=new Date();
   var fecha=now.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
   var hora=now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
   DB.sugerencias.push({contenido:t,fecha:fecha,hora:hora,ts:Date.now()});
   await saveToCloud();
-  document.getElementById('sugFormArea').style.display='none';
-  document.getElementById('sugBackBtn').style.display='none';
-  document.getElementById('sugOk').style.display='block';
+  // Éxito
+  okEl.innerHTML='<div class="send-loading">'
+    +'<div class="send-success-icon">💡</div>'
+    +'<div style="font-size:18px;font-weight:800;color:var(--text)">¡Sugerencia enviada!</div>'
+    +'<div style="font-size:13px;color:var(--text2);text-align:center;line-height:1.5">Gracias por tu aporte.<br>La directiva la revisará pronto.</div>'
+    +'<div style="display:flex;gap:8px;margin-top:4px">'
+    +'<button class="modal-btn gray" onclick="resetSug()">Enviar otra</button>'
+    +'<button class="modal-btn blue" onclick="showSection(\'menu\')">← Ir al menú</button>'
+    +'</div>'
+    +'</div>';
   updBadges();
 }
 function resetSug(){
