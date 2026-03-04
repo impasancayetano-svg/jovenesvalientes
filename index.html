@@ -959,7 +959,7 @@ textarea.sug-area:focus{border-color:var(--blue);}
 
 <!-- PROFILE MODAL (JV y Directiva) -->
 <div class="modal-backdrop" id="profileModal" onclick="closeModal('profileModal')">
-  <div class="modal-box" onclick="event.stopPropagation()">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto;display:flex;flex-direction:column">
     <div class="modal-header">
       <span class="modal-title">✨ Mi perfil</span>
       <button class="modal-close" onclick="closeModal('profileModal')">✕</button>
@@ -977,7 +977,7 @@ textarea.sug-area:focus{border-color:var(--blue);}
     <!-- Top asistencia del año -->
     <div id="profileTopAsistencia" style="margin-bottom:14px"></div>
     <!-- Selector emoji -->
-    <label class="modal-label">Elegí tu emoji</label>
+    <label class="modal-label" id="emojiLabel">Elegí tu emoji</label>
     <div class="emoji-grid" id="emojiGrid"></div>
     <div class="modal-actions" style="margin-top:14px">
       <button class="modal-btn red" onclick="closeModal('profileModal');confirmLogout()">🚪 Cerrar sesión</button>
@@ -1353,13 +1353,14 @@ function enterDirectiva(cuenta){
   document.querySelectorAll('.priv-only').forEach(function(e){e.style.display='';});
   document.querySelectorAll('.priv-edit').forEach(function(e){e.style.display='';});
   document.querySelectorAll('.jv-only').forEach(function(e){e.style.display='none';});
+  var tieneVinculo=cuenta.vinculo&&cuenta.vinculo.length>0;
   document.querySelectorAll('.dir-only').forEach(function(e){e.style.display=tieneVinculo?'':'none';});
   // Perfil Directiva - mostrar tarjeta y botón
+  if(!cuenta.emoji)cuenta.emoji='👔';
   document.getElementById('profileBtn').style.display='';
-  document.getElementById('profileBtn').textContent=cuenta.emoji||'👔';
+  document.getElementById('profileBtn').textContent=cuenta.emoji;
   refreshDirProfileCard();
   setJVCardVisible(true);
-  // Ocultar botones de login del menú
   hideLoginBtns();
   hideAdminEls();renderAll();closeModal('rolModal');closeModal('directivaLoginModal');
   showSection('menu');showToast('👔 ¡Hola, '+cuenta.nombre.split(' ')[0]+'!');
@@ -2762,9 +2763,8 @@ var EMOJIS=[
 var _pickedEmoji='😊';
 
 function openProfilePanel(){
-  // Admin sin cuenta personal
+  // Admin sin cuenta personal — solo info, sin grilla de emojis
   if(isAdmin&&!currentJVUser&&!currentDirUser){
-    // Mostrar modal simple con solo cerrar sesión
     document.getElementById('profilePreviewEmoji').textContent='🔧';
     document.getElementById('profilePreviewName').textContent='Administrador';
     document.getElementById('profilePreviewUser').textContent='Modo admin';
@@ -2774,12 +2774,14 @@ function openProfilePanel(){
     document.getElementById('profilePreviewRango').style.display='inline-block';
     document.getElementById('profileAsisStats').innerHTML='';
     document.getElementById('profileTopAsistencia').innerHTML='';
+    document.getElementById('emojiLabel').style.display='none';
     document.getElementById('emojiGrid').innerHTML='';
     openModal('profileModal');
     return;
   }
   var user=currentJVUser||currentDirUser;
   if(!user)return;
+  document.getElementById('emojiLabel').style.display='';
   _pickedEmoji=user.emoji||'😊';
   document.getElementById('profilePreviewEmoji').textContent=_pickedEmoji;
   document.getElementById('profilePreviewName').textContent=user.nombre;
