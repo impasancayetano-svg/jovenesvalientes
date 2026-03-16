@@ -199,8 +199,9 @@ textarea.form-input{resize:vertical;}
 .profile-name{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;margin-bottom:4px;}
 
 /* EMOJI PICKER */
-.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-height:200px;overflow-y:auto;padding:4px;}
+.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-height:320px;overflow-y:auto;padding:4px;}
 .emoji-btn{background:none;border:1px solid transparent;border-radius:8px;font-size:22px;cursor:pointer;padding:4px;transition:all .2s;aspect-ratio:1;display:flex;align-items:center;justify-content:center;}
+.emoji-cat-label{grid-column:1/-1;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;padding:8px 2px 4px;}
 .emoji-btn:hover{background:var(--bg3);border-color:var(--border);transform:scale(1.2);}
 .emoji-btn.sel{background:var(--bg3);border-color:var(--accent);}
 
@@ -319,12 +320,12 @@ textarea.form-input{resize:vertical;}
     <div class="home-btns anim-delay2">
       <button class="home-btn home-btn-dir" onclick="goSelector('directiva')">
         <div id="iconDirectiva" style="font-size:36px">🛡️</div>
-        <span>DIRECTIVA</span>
+        <span id="labelDirectiva">DIRECTIVA</span>
         <button class="pencil btn-img-pencil" onclick="event.stopPropagation();tryBtnImg('directiva')">🖊️</button>
       </button>
       <button class="home-btn home-btn-jov" onclick="goSelector('joven')">
         <div id="iconJoven" style="font-size:36px">⚡</div>
-        <span>JOVEN VALIENTE</span>
+        <span id="labelJoven">JOVEN VALIENTE</span>
         <button class="pencil btn-img-pencil" onclick="event.stopPropagation();tryBtnImg('joven')">🖊️</button>
       </button>
     </div>
@@ -417,7 +418,14 @@ textarea.form-input{resize:vertical;}
     <div class="form-group"><label class="form-label">Rol</label>
       <select class="form-input" id="nuRole"><option value="joven">⚡ Joven Valiente</option><option value="directivo">📋 Directivo</option><option value="mod">🛡️ Mod Asignado</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Vincular asistencia</label><select class="form-input" id="nuAtt"></select></div>
+    <div class="form-group">
+      <label class="form-label">Vincular asistencia</label>
+      <select class="form-input" id="nuAtt" onchange="onNuAttChange(this)"></select>
+    </div>
+    <div class="form-group" id="nuNewAttGroup" style="display:none">
+      <label class="form-label">Nuevo nombre de asistencia</label>
+      <input type="text" class="form-input" id="nuNewAtt" placeholder="Nombre Apellido">
+    </div>
     <button class="btn-primary" onclick="saveNewUser()">GUARDAR</button>
   </div>
 </div>
@@ -450,6 +458,14 @@ textarea.form-input{resize:vertical;}
     <div class="form-group"><label class="form-label">Nueva contraseña (vacío = no cambiar)</label>
       <div class="pass-wrap"><input type="password" class="form-input" id="epPass" placeholder="••••••••"><button class="pass-eye" onclick="togglePass('epPass',this)">🙈</button></div>
     </div>
+    <div class="form-group">
+      <label class="form-label">Vincular asistencia</label>
+      <select class="form-input" id="epAtt" onchange="onEpAttChange(this)"></select>
+    </div>
+    <div class="form-group" id="epNewAttGroup" style="display:none">
+      <label class="form-label">Nuevo nombre de asistencia</label>
+      <input type="text" class="form-input" id="epNewAtt" placeholder="Nombre Apellido">
+    </div>
     <button class="btn-primary" onclick="saveProfile()">GUARDAR</button>
   </div>
 </div>
@@ -458,12 +474,7 @@ textarea.form-input{resize:vertical;}
   <div class="modal">
     <button class="modal-close" onclick="cm('mEmoji')">✕</button>
     <div class="modal-title">ELEGIR EMOJI</div>
-    <div class="tabs">
-      <button class="tab active" onclick="filterEmoji('faces',this)">😊 Caras</button>
-      <button class="tab" onclick="filterEmoji('animals',this)">🐶 Animales</button>
-      <button class="tab" onclick="filterEmoji('flags',this)">🏳️ Banderas</button>
-    </div>
-    <div class="emoji-grid" id="emojiGrid"></div>
+    <div class="emoji-grid" id="emojiGrid" style="max-height:320px"></div>
     <button class="btn-secondary" onclick="cm('mEmoji')">CANCELAR</button>
   </div>
 </div>
@@ -532,12 +543,35 @@ textarea.form-input{resize:vertical;}
 <div class="modal-overlay" id="mChangeRole">
   <div class="modal">
     <button class="modal-close" onclick="cm('mChangeRole')">✕</button>
-    <div class="modal-title">CAMBIAR ROL</div>
+    <div class="modal-title">GESTIONAR ROLES</div>
     <div class="info-box" id="crInfo"></div>
-    <div class="form-group"><label class="form-label">Nuevo rol</label>
-      <select class="form-input" id="crRole"><option value="joven">⚡ Joven Valiente</option><option value="directivo">📋 Directivo</option><option value="mod">🛡️ Mod Asignado</option></select>
+    <div class="form-group">
+      <label class="form-label">Rol principal</label>
+      <select class="form-input" id="crRole">
+        <option value="joven">⚡ Joven Valiente</option>
+        <option value="directivo">📋 Directivo</option>
+        <option value="mod">🛡️ Mod Asignado</option>
+      </select>
     </div>
-    <button class="btn-primary" onclick="saveRole()">CAMBIAR</button>
+    <div class="form-group">
+      <label class="form-label">Rol secundario (doble rol — opcional)</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px" id="crSecondaryRoles">
+        <label style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer">
+          <input type="checkbox" id="crSec_directivo" value="directivo" style="width:18px;height:18px;accent-color:var(--accent3);cursor:pointer">
+          <span style="font-size:14px">📋 Directivo</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer">
+          <input type="checkbox" id="crSec_mod" value="mod" style="width:18px;height:18px;accent-color:var(--accent4);cursor:pointer">
+          <span style="font-size:14px">🛡️ Mod Asignado</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer">
+          <input type="checkbox" id="crSec_joven" value="joven" style="width:18px;height:18px;accent-color:var(--accent2);cursor:pointer">
+          <span style="font-size:14px">⚡ Joven Valiente</span>
+        </label>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">El rol secundario le da acceso adicional al usuario.</div>
+    </div>
+    <button class="btn-primary" onclick="saveRole()">GUARDAR ROLES</button>
   </div>
 </div>
 
@@ -716,13 +750,29 @@ function gs(id){
 }
 function updateEditBtn(sid){
   const et=document.getElementById('editToggle');
-  const can=CU&&(CU.role==='absoluto'||CU.role==='mod'||CU.role==='directivo');
+  // Solo absoluto o mod (principal o secundario) con permiso edit_texts
+  const isMod=CU&&(CU.role==='mod'||(CU.secondaryRoles||[]).includes('mod'));
+  const can=CU&&(CU.role==='absoluto'||(isMod&&hp('edit_texts')));
   et.style.display=(sid==='screen-home'&&can)?'block':'none';
 }
-function hp(p){if(!CU)return false;if(CU.role==='absoluto')return true;if(!CU.perms)return true;return CU.perms.includes(p);}
+function hp(p){
+  if(!CU)return false;
+  if(CU.role==='absoluto')return true;
+  // Si tiene mod como rol principal o secundario con perms
+  const isMod=CU.role==='mod'||(CU.secondaryRoles||[]).includes('mod');
+  if(isMod){if(!CU.perms)return true;return CU.perms.includes(p);}
+  return false;
+}
 function gub(id){return db.users.find(u=>u.id===id);}
 function rl(r){return{absoluto:'👑 Mod Absoluto',mod:'🛡️ Mod Asignado',directivo:'📋 Directivo',joven:'⚡ Joven Valiente'}[r]||r;}
-function rc(r){const m={absoluto:'<span class="chip c-abs">👑 Mod Absoluto</span>',mod:'<span class="chip c-mod">🛡️ Mod Asignado</span>',directivo:'<span class="chip c-dir">📋 Directivo</span>',joven:'<span class="chip c-jov">⚡ Joven Valiente</span>'};return m[r]||'';}
+function rc(r,u){
+  const m={absoluto:'<span class="chip c-abs">👑 Mod Absoluto</span>',mod:'<span class="chip c-mod">🛡️ Mod Asignado</span>',directivo:'<span class="chip c-dir">📋 Directivo</span>',joven:'<span class="chip c-jov">⚡ Joven Valiente</span>'};
+  let chips=m[r]||'';
+  if(u&&u.secondaryRoles&&u.secondaryRoles.length>0){
+    u.secondaryRoles.forEach(sr=>{if(m[sr])chips+=' '+m[sr];});
+  }
+  return chips;
+}
 function ro(r){return{absoluto:0,mod:1,directivo:2,joven:3}[r]??4;}
 function su(){return[...db.users].sort((a,b)=>{const d=ro(a.role)-ro(b.role);return d!==0?d:a.username.localeCompare(b.username);});}
 function attCount(aid,yr){const y=yr||db.curYear,d=db.attYears[y];if(!d)return 0;let c=0;Object.values(d).forEach(x=>{if(x[aid]==='present')c++;});return c;}
@@ -760,6 +810,17 @@ function toggleEditMode(){
 // ================================================================
 function renderHome(){
   Object.entries(db.texts).forEach(([k,v])=>{const el=document.getElementById(k);if(el)el.textContent=v;});
+  // Actualizar etiquetas de botones según sesión
+  const lDir=document.getElementById('labelDirectiva');
+  const lJov=document.getElementById('labelJoven');
+  if(CU){
+    const label=`${CU.emoji||'😊'} ${CU.username.split(' ')[0].toUpperCase()} — ENTRAR`;
+    if(lDir)lDir.textContent=label;
+    if(lJov)lJov.textContent=label;
+  } else {
+    if(lDir)lDir.textContent='DIRECTIVA';
+    if(lJov)lJov.textContent='JOVEN VALIENTE';
+  }
   if(db.logo){document.getElementById('logoImg').src=db.logo;document.getElementById('logoImg').style.display='block';document.getElementById('logoPlaceholder').style.display='none';}
   else{document.getElementById('logoImg').style.display='none';document.getElementById('logoPlaceholder').style.display='flex';}
   const dl=document.getElementById('directorsList');
@@ -771,9 +832,9 @@ function renderHome(){
   }
 }
 function tryLogoUpload(){if(!editMode)return;document.getElementById('logoFile').click();}
-function onLogoUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{db.logo=ev.target.result;sdb();renderHome();toast('Logo actualizado ✓','success');};r.readAsDataURL(f);}
+function onLogoUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{db.logo=ev.target.result;sdb();saveToCloud();renderHome();toast('Logo actualizado ✓','success');};r.readAsDataURL(f);}
 function tryBtnImg(t){if(!editMode)return;document.getElementById('img'+t.charAt(0).toUpperCase()+t.slice(1)).click();}
-function onBtnImg(e,t){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{db.btnImgs[t]=ev.target.result;sdb();renderHome();toast('Imagen actualizada ✓','success');};r.readAsDataURL(f);}
+function onBtnImg(e,t){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{db.btnImgs[t]=ev.target.result;sdb();saveToCloud();renderHome();toast('Imagen actualizada ✓','success');};r.readAsDataURL(f);}
 
 // ================================================================
 // TEXT EDIT
@@ -876,7 +937,7 @@ function applyColor(){
   if(!cpVar)return;
   const hex=document.getElementById('cpHex').value;
   document.documentElement.style.setProperty(cpVar,hex);
-  db.colors[cpVar]=hex;sdb();
+  db.colors[cpVar]=hex;sdb();saveToCloud();
   const sw=document.querySelector('.var-btn.active .var-swatch');if(sw)sw.style.background=hex;
   toast('Color aplicado ✓','success');
 }
@@ -901,6 +962,8 @@ window.addEventListener('load',()=>{
 // NAVIGATION
 // ================================================================
 function goSelector(type){
+  // Si ya hay sesión activa, entrar directo al dashboard sin pedir contraseña
+  if(CU){loadDash();gs('screen-dashboard');return;}
   const title=document.getElementById('selectorTitle');
   const btns=document.getElementById('selectorBtns');
   title.textContent=type==='directiva'?'DIRECTIVA':'JOVEN VALIENTE';
@@ -947,11 +1010,12 @@ function loadDash(){
 }
 function renderDashMain(){
   const r=CU.role;
+  const secR=CU.secondaryRoles||[];
   let cards='';
   cards+=pc('👥','Miembros',"sec('members')");
   cards+=pc('😊','Mi Perfil',"sec('profile')");
   cards+=pc('📊','Asistencias',"sec('att-view')");
-  if(r==='absoluto'||r==='mod'||r==='directivo')cards+=pc('📋','Tomar Asistencia',"sec('att-take')");
+  if(r==='absoluto'||r==='mod'||r==='directivo'||secR.includes('directivo')||secR.includes('mod'))cards+=pc('📋','Tomar Asistencia',"sec('att-take')");
   if(r==='absoluto'||(r==='mod'&&hp('manage_users')))cards+=pc('👤','Usuarios',"sec('users')");
   if(r==='absoluto'||(r==='mod'&&hp('view_requests'))){const p=db.requests.filter(x=>x.status==='pending').length;cards+=pc('✉️',`Solicitudes${p>0?` (${p})`:'`'}`,"sec('requests')",p>0);}
   if(r==='absoluto'||(r==='mod'&&hp('view_log')))cards+=pc('📝','Registro',"sec('log')");
@@ -989,7 +1053,7 @@ function sMem(){
   sorted.forEach(u=>{
     if(u.role!==lr){h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin:14px 0 6px">${rl(u.role)}</div>`;lr=u.role;}
     const ac=u.attId?attCount(u.attId):'-';
-    h+=`<div class="user-item"><div class="u-avatar">${u.emoji||'😊'}</div><div class="u-info"><div class="u-name">${u.username}</div><div class="u-sub">${rl(u.role)} · Asist: ${ac}</div></div></div>`;
+    h+=`<div class="user-item"><div class="u-avatar">${u.emoji||'😊'}</div><div class="u-info"><div class="u-name">${u.username}</div><div class="u-sub">${rc(u.role,u)} · Asist: ${ac}</div></div></div>`;
   });
   return h;
 }
@@ -1001,11 +1065,11 @@ function sProf(){
       <span class="profile-emoji" onclick="om('mEmoji')">${u.emoji||'😊'}</span>
       <div class="profile-name">${u.username}</div>
       <div style="color:var(--text3);font-size:13px;margin-bottom:12px">@${u.username}</div>
-      <div>${rc(u.role)}</div>
+      <div>${rc(u.role,u)}</div>
       ${u.attId?`<div style="margin-top:16px;font-size:13px;color:var(--text2)">Asistencias ${db.curYear}: <strong style="color:var(--accent);font-size:22px">${ac}</strong></div>`:''}
     </div>
     <button class="btn-primary" onclick="_euId='${u.id}';document.getElementById('epUser').value='${u.username}';document.getElementById('epPass').value='';om('mEditProfile')">✏️ EDITAR PERFIL</button>
-    <button class="btn-secondary" onclick="om('mEmoji')">😊 CAMBIAR EMOJI</button>
+    <button class="btn-secondary" onclick="openEmojiModal()">😊 CAMBIAR EMOJI</button>
     <button class="btn-secondary" style="margin-top:8px;border-color:var(--red);color:var(--red)" onclick="logout()">🚪 CERRAR SESIÓN</button>`;
 }
 
@@ -1013,7 +1077,7 @@ let _attYr=null;
 function sAttView(){
   const years=Object.keys(db.attYears).sort().reverse(),cy=db.curYear;
   const yb=`<div class="year-sel"><button class="year-btn active" onclick="swYear('${cy}',this)">${cy} (actual)</button>${years.filter(y=>y!==cy).map(y=>`<button class="year-btn" onclick="swYear('${y}',this)">${y}</button>`).join('')}</div>`;
-  const isUp=CU.role==='absoluto'||CU.role==='mod'||CU.role==='directivo';
+  const isUp=CU.role==='absoluto'||CU.role==='mod'||CU.role==='directivo'||(CU.secondaryRoles||[]).includes('directivo')||(CU.secondaryRoles||[]).includes('mod');
   if(isUp)return`<div class="section-header"><h2>📊 ASISTENCIAS</h2></div>${yb}<div class="tabs"><button class="tab active" onclick="swAttTab('rank',this)">🏆 Ranking</button><button class="tab" onclick="swAttTab('list',this)">📋 Listado</button></div><div id="attTC">${rankHTML(cy)}</div>`;
   const ac=CU.attId?attCount(CU.attId):0;
   return`<div class="section-header"><h2>📊 MIS ASISTENCIAS</h2></div>${yb}<div class="profile-card"><div style="font-size:48px;margin-bottom:8px">📅</div><div style="font-family:'Bebas Neue',cursive;font-size:48px;color:var(--accent)">${ac}</div><div style="color:var(--text2);font-size:13px">asistencias en ${cy}</div></div><div id="attTC">${myAttHTML(cy)}</div>`;
@@ -1072,8 +1136,39 @@ function sUsers(){
   if(db.attNames.length){h+=`<div style="font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:2px;margin:20px 0 10px;color:var(--text2)">NOMBRES ASISTENCIA</div>`;h+=db.attNames.map(n=>`<div class="att-item"><div class="att-name">${n.name}</div><button class="btn-icon d" onclick="delAtt('${n.id}')">🗑️</button></div>`).join('');}
   return h;
 }
-function openAddUser(){document.getElementById('nuName').value='';document.getElementById('nuPass').value='';document.getElementById('nuRole').value='joven';const s=document.getElementById('nuAtt');s.innerHTML='<option value="">-- Sin vincular --</option>'+db.attNames.map(n=>`<option value="${n.id}">${n.name}</option>`).join('');om('mAddUser');}
-function saveNewUser(){const u=document.getElementById('nuName').value.trim(),p=document.getElementById('nuPass').value,r=document.getElementById('nuRole').value,a=document.getElementById('nuAtt').value||null;if(!u||!p){toast('Completá usuario y contraseña','error');return;}if(db.users.find(x=>x.username.toLowerCase()===u.toLowerCase())){toast('Ese usuario ya existe','error');return;}db.users.push({id:gid(),username:u,password:p,role:r,emoji:'😊',attId:a,perms:r==='mod'?[]:null,created:new Date().toISOString()});sdb();saveToCloud();cm('mAddUser');toast('Usuario creado ✓','success');sec('users');}
+function openAddUser(){
+  document.getElementById('nuName').value='';
+  document.getElementById('nuPass').value='';
+  document.getElementById('nuRole').value='joven';
+  document.getElementById('nuNewAttGroup').style.display='none';
+  document.getElementById('nuNewAtt').value='';
+  const s=document.getElementById('nuAtt');
+  s.innerHTML='<option value="">-- Sin vincular --</option>'
+    +db.attNames.map(n=>`<option value="${n.id}">${n.name}</option>`).join('')
+    +'<option value="__new__">➕ Crear nuevo nombre</option>';
+  om('mAddUser');
+}
+function onNuAttChange(sel){
+  document.getElementById('nuNewAttGroup').style.display=sel.value==='__new__'?'block':'none';
+}
+function saveNewUser(){
+  const u=document.getElementById('nuName').value.trim();
+  const p=document.getElementById('nuPass').value;
+  const r=document.getElementById('nuRole').value;
+  let a=document.getElementById('nuAtt').value||null;
+  if(!u||!p){toast('Completá usuario y contraseña','error');return;}
+  if(db.users.find(x=>x.username.toLowerCase()===u.toLowerCase())){toast('Ese usuario ya existe','error');return;}
+  // Crear nuevo nombre de asistencia si eligió esa opción
+  if(a==='__new__'){
+    const nn=document.getElementById('nuNewAtt').value.trim();
+    if(!nn){toast('Escribí el nombre de asistencia','error');return;}
+    const newN={id:gid(),name:nn};
+    db.attNames.push(newN);
+    a=newN.id;
+  }
+  db.users.push({id:gid(),username:u,password:p,role:r,emoji:'😊',attId:a,perms:r==='mod'?[]:null,created:new Date().toISOString()});
+  sdb();saveToCloud();cm('mAddUser');toast('Usuario creado ✓','success');sec('users');
+}
 function delUser(id){if(!confirm('¿Eliminar?'))return;db.users=db.users.filter(u=>u.id!==id);sdb();saveToCloud();toast('Eliminado','success');sec('users');}
 function saveAttName(){const n=document.getElementById('newAttName').value.trim();if(!n){toast('Ingresá un nombre','error');return;}db.attNames.push({id:gid(),name:n});sdb();saveToCloud();cm('mAddAtt');toast('Nombre agregado ✓','success');sec('users');}
 function delAtt(id){if(!confirm('¿Eliminar?'))return;db.attNames=db.attNames.filter(n=>n.id!==id);sdb();saveToCloud();toast('Eliminado','success');sec('users');}
@@ -1141,11 +1236,69 @@ function saveDirsDash(){db.directorsList=document.getElementById('dirsDash').val
 function sRoles(){
   const us=su().filter(u=>u.id!=='lucas');if(!us.length)return`<div class="section-header"><h2>🎭 ROLES</h2></div><div class="empty"><div>Sin usuarios</div></div>`;
   let h=`<div class="section-header"><h2>🎭 GESTIONAR ROLES</h2></div>`;
-  us.forEach(u=>{h+=`<div class="user-item"><div class="u-avatar">${u.emoji||'😊'}</div><div class="u-info"><div class="u-name">${u.username}</div><div>${rc(u.role)}</div></div><button class="btn-icon s" onclick="openCR('${u.id}')">🔄</button></div>`;});
+  us.forEach(u=>{
+    const secLabel=(u.secondaryRoles&&u.secondaryRoles.length>0)
+      ?`<div style="font-size:11px;color:var(--text3);margin-top:2px">+ ${u.secondaryRoles.map(r=>rl(r)).join(', ')}</div>`:'';
+    h+=`<div class="user-item">
+      <div class="u-avatar">${u.emoji||'😊'}</div>
+      <div class="u-info">
+        <div class="u-name">${u.username}</div>
+        <div>${rc(u.role,u)}</div>
+        ${secLabel}
+      </div>
+      <button class="btn-icon s" onclick="openCR('${u.id}')">🔄</button>
+    </div>`;
+  });
   return h;
 }
-function openCR(uid){_crUid=uid;const u=gub(uid);document.getElementById('crInfo').innerHTML=`<strong>${u.username}</strong> · ${rl(u.role)}`;document.getElementById('crRole').value=u.role==='absoluto'?'mod':u.role;om('mChangeRole');}
-function saveRole(){const u=gub(_crUid);if(!u)return;const r=document.getElementById('crRole').value;u.role=r;if(r==='mod'&&!u.perms)u.perms=[];sdb();saveToCloud();cm('mChangeRole');toast('Rol actualizado ✓','success');sec('roles');}
+function openCR(uid){
+  _crUid=uid;
+  const u=gub(uid);
+  const secRoles=u.secondaryRoles||[];
+  // Mostrar info actual incluyendo doble rol
+  const secLabel=secRoles.length>0?' + '+secRoles.map(r=>rl(r)).join(', '):'';
+  document.getElementById('crInfo').innerHTML=`<strong>${u.username}</strong><br><span style="font-size:12px;color:var(--text2)">${rl(u.role)}${secLabel}</span>`;
+  document.getElementById('crRole').value=u.role==='absoluto'?'mod':u.role;
+  // Marcar checkboxes de roles secundarios
+  ['directivo','mod','joven'].forEach(r=>{
+    const cb=document.getElementById('crSec_'+r);
+    if(cb)cb.checked=secRoles.includes(r);
+  });
+  // Ocultar el checkbox que coincide con el rol principal
+  syncSecCheckboxes();
+  document.getElementById('crRole').addEventListener('change',syncSecCheckboxes);
+  om('mChangeRole');
+}
+function syncSecCheckboxes(){
+  const primary=document.getElementById('crRole').value;
+  ['directivo','mod','joven'].forEach(r=>{
+    const lbl=document.getElementById('crSec_'+r)?.closest('label');
+    if(lbl){
+      // Ocultar el que ya es rol principal
+      lbl.style.opacity=r===primary?'0.3':'1';
+      lbl.style.pointerEvents=r===primary?'none':'auto';
+      if(r===primary)document.getElementById('crSec_'+r).checked=false;
+    }
+  });
+}
+function saveRole(){
+  const u=gub(_crUid);if(!u)return;
+  const r=document.getElementById('crRole').value;
+  // Recopilar roles secundarios seleccionados (que no sean iguales al principal)
+  const secRoles=[];
+  ['directivo','mod','joven'].forEach(rv=>{
+    const cb=document.getElementById('crSec_'+rv);
+    if(cb&&cb.checked&&rv!==r)secRoles.push(rv);
+  });
+  u.role=r;
+  u.secondaryRoles=secRoles;
+  // Si algún rol es mod, asegurar perms
+  if(r==='mod'&&!u.perms)u.perms=[];
+  if(secRoles.includes('mod')&&!u.perms)u.perms=[];
+  sdb();saveToCloud();cm('mChangeRole');
+  const msg=secRoles.length>0?`Roles: ${rl(r)} + ${secRoles.map(rv=>rl(rv)).join(', ')}`:`Rol: ${rl(r)}`;
+  toast('✓ '+msg,'success');sec('roles');
+}
 
 function sPerms(){
   const mods=db.users.filter(u=>u.role==='mod');if(!mods.length)return`<div class="section-header"><h2>🔑 PERMISOS</h2></div><div class="empty"><div>Sin Mods Asignados</div></div>`;
@@ -1160,31 +1313,66 @@ function savePerms(){const u=gub(_puId);if(!u)return;u.perms=APERMS.filter(x=>do
 // ================================================================
 // PROFILE EDIT
 // ================================================================
-function openEP(uid){_euId=uid;const u=gub(uid);if(!u)return;document.getElementById('epUser').value=u.username;document.getElementById('epPass').value='';om('mEditProfile');}
+function openEP(uid){
+  _euId=uid;
+  const u=gub(uid);if(!u)return;
+  document.getElementById('epUser').value=u.username;
+  document.getElementById('epPass').value='';
+  document.getElementById('epNewAttGroup').style.display='none';
+  document.getElementById('epNewAtt').value='';
+  const s=document.getElementById('epAtt');
+  s.innerHTML='<option value="">-- Sin vincular --</option>'
+    +db.attNames.map(n=>`<option value="${n.id}"${u.attId===n.id?' selected':''}>${n.name}</option>`).join('')
+    +'<option value="__new__">➕ Crear nuevo nombre</option>';
+  om('mEditProfile');
+}
+function onEpAttChange(sel){
+  document.getElementById('epNewAttGroup').style.display=sel.value==='__new__'?'block':'none';
+}
 function saveProfile(){
   const u=gub(_euId);if(!u)return;
   const nu=document.getElementById('epUser').value.trim(),np=document.getElementById('epPass').value;
   if(!nu){toast('El usuario no puede estar vacío','error');return;}
   if(db.users.find(x=>x.username.toLowerCase()===nu.toLowerCase()&&x.id!==u.id)){toast('Ese usuario ya existe','error');return;}
   u.username=nu;if(np)u.password=np;
-  if(_euId===CU.id){CU.username=nu;if(np)CU.password=np;document.getElementById('dashUsername').textContent=nu;}
-  sdb();saveToCloud();cm('mEditProfile');toast('Perfil actualizado ✓','success');sec('profile');
+  // Manejar vínculo de asistencia
+  let na=document.getElementById('epAtt').value||null;
+  if(na==='__new__'){
+    const nn=document.getElementById('epNewAtt').value.trim();
+    if(nn){const newN={id:gid(),name:nn};db.attNames.push(newN);na=newN.id;}
+    else na=u.attId||null;
+  }
+  u.attId=na||null;
+  if(_euId===CU.id){CU.username=nu;CU.attId=u.attId;if(np)CU.password=np;document.getElementById('dashUsername').textContent=nu;}
+  sdb();saveToCloud();cm('mEditProfile');toast('Perfil actualizado ✓','success');sec('users');
 }
 
 // ================================================================
 // EMOJI
 // ================================================================
 const EMOJIS={
-  faces:['😊','😎','🤩','😃','😅','🥳','😇','🤓','😏','🥹','😤','🫡','🤔','😴','🥸','😈','👿','🤯','😱','🤗','😂','🤣','😭','😍','🥰','😘','🫶','💪','✌️','🙌','😆','🤪','😜','🧐','🤡','👻','💀'],
-  animals:['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦅','🦆','🦉','🦇','🐺','🐴','🦄','🐝','🦋','🐢','🦎','🐍','🐙','🦑','🐠','🐬','🐳','🦈','🐊','🐆','🦓','🐘','🦒','🦔','🦦','🐓','🦃'],
+  faces:['😊','😎','🤩','😃','😅','🥳','😇','🤓','😏','🥹','😤','🫡','🤔','😴','🥸','😈','👿','🤯','😱','🤗','😂','🤣','😭','😍','🥰','😘','🫶','💪','✌️','🙌','😆','🤪','😜','🧐','🤡','👻','💀','🫠','🥴','🤑','😤','😵','🤧','🥶','🥵','😬','🙈','🙉','🙊'],
+  animals:['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦅','🦆','🦉','🦇','🐺','🐴','🦄','🐝','🦋','🐢','🦎','🐍','🐙','🦑','🐠','🐬','🐳','🦈','🐊','🐆','🦓','🐘','🦒','🦔','🦦','🐓','🦃','🦚','🦜','🦩','🐉','🦕'],
   flags:['🇦🇷','🇧🇷','🇺🇸','🇲🇽','🇨🇴','🇨🇱','🇵🇪','🇻🇪','🇺🇾','🇵🇾','🇧🇴','🇪🇨','🇬🇹','🇨🇺','🇩🇴','🇭🇳','🇸🇻','🇨🇷','🇵🇦','🇳🇮','🇬🇧','🇪🇸','🇫🇷','🇩🇪','🇮🇹','🇵🇹','🇯🇵','🇰🇷','🇨🇳','🇷🇺','🇦🇺','🇨🇦','🇮🇱','🇵🇱','🇳🇱','🇧🇪','🇨🇭','🇦🇹','🇸🇪','🇳🇴','🇩🇰','🇫🇮','🇮🇪','🇬🇷','🇹🇷','🇺🇦','🇿🇦','🇳🇬','🇪🇬','🇲🇦']
 };
-function filterEmoji(cat,btn){
-  document.querySelectorAll('#mEmoji .tab').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');else document.querySelector('#mEmoji .tab').classList.add('active');
+function openEmojiModal(){
+  // Todos los emojis juntos con separadores de categoría
   const sel=CU?.emoji||'😊';
-  document.getElementById('emojiGrid').innerHTML=EMOJIS[cat].map(e=>`<button class="emoji-btn${e===sel?' sel':''}" onclick="pickEmoji('${e}')">${e}</button>`).join('');
+  const cats=[
+    {key:'faces',label:'😊 Caras'},
+    {key:'animals',label:'🐾 Animales'},
+    {key:'flags',label:'🏳️ Banderas'},
+  ];
+  let html='';
+  cats.forEach(c=>{
+    html+=`<div class="emoji-cat-label">${c.label}</div>`;
+    html+=EMOJIS[c.key].map(e=>`<button class="emoji-btn${e===sel?' sel':''}" onclick="pickEmoji('${e}')">${e}</button>`).join('');
+  });
+  document.getElementById('emojiGrid').innerHTML=html;
+  om('mEmoji');
 }
+// Mantener filterEmoji por compatibilidad (no se usa desde UI)
+function filterEmoji(cat,btn){}
 function pickEmoji(e){
   if(!CU)return;CU.emoji=e;const u=gub(CU.id);if(u)u.emoji=e;
   sdb();saveToCloud();document.getElementById('dashAvatar').textContent=e;
@@ -1217,7 +1405,19 @@ renderHome();
 (async()=>{
   await loadFromCloud();
   const ses=lses();
-  if(ses){const u=db.users.find(x=>x.id===ses.id);if(u){CU=u;loadDash();gs('screen-dashboard');updateEditBtn('screen-dashboard');}}
+  if(ses){
+    // Buscar usuario en datos frescos de la nube
+    const u=db.users.find(x=>x.id===ses.id);
+    if(u){
+      CU=u;
+      loadDash();
+      gs('screen-dashboard');
+      updateEditBtn('screen-dashboard');
+    } else {
+      // Usuario no encontrado en nube, limpiar sesión
+      sses(null);
+    }
+  }
   startAutoRefresh();
 })();
 
