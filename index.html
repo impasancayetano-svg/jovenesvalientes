@@ -47,6 +47,10 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .pencil:hover{background:rgba(57,211,83,.3);transform:scale(1.1);}
 .edit-active .pencil{display:inline-block;}
 .edit-active .editable:hover{outline:1px dashed rgba(57,211,83,.5);border-radius:4px;cursor:default;}
+/* Wrapper de lápices en botones — oculto por defecto, visible solo en edit-active */
+.pencil-group{display:none;position:absolute;top:-8px;right:-8px;flex-direction:column;gap:2px;z-index:20;}
+.edit-active .pencil-group{display:flex;}
+.pencil-group .pencil{display:inline-block;margin:0;padding:4px 6px;font-size:13px;border-radius:8px;}
 
 /* BACK */
 .btn-back{background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;font-family:'Exo 2',sans-serif;font-weight:600;padding:10px 0;display:flex;align-items:center;gap:8px;transition:color .2s;}
@@ -78,8 +82,9 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .home-info-row>span:first-child{color:var(--accent3);font-size:16px;flex-shrink:0;margin-top:1px;}
 .info-val{color:var(--text2);font-size:13px;line-height:1.5;}
 .director-item{font-size:13px;color:var(--text2);padding:3px 0;border-bottom:1px solid var(--border);}
-.home-btns{width:100%;display:flex;gap:16px;margin-bottom:12px;}
-.home-btn{flex:1;aspect-ratio:1;border:none;border-radius:var(--radius);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:'Bebas Neue',cursive;font-size:20px;letter-spacing:2px;transition:all .3s;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+.home-btns{width:100%;display:flex;flex-direction:row;gap:12px;margin-bottom:12px;justify-content:center;}
+.home-btn{width:148px;flex-shrink:0;height:148px;border:none;border-radius:var(--radius);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-family:'Bebas Neue',cursive;font-size:17px;letter-spacing:2px;transition:all .3s;position:relative;overflow:visible;box-shadow:var(--shadow);}
+.home-btn>span,.home-btn>div:first-child{pointer-events:none;}
 .home-btn-dir{background:linear-gradient(135deg,#1a1a3e,#0d0d2b);border:1px solid var(--accent4);color:var(--accent3);}
 .home-btn-dir:hover{box-shadow:0 0 30px rgba(123,47,255,.5);transform:translateY(-3px);}
 .home-btn-jov{background:linear-gradient(135deg,#1a0d0d,#2a0a1a);border:1px solid var(--accent);color:var(--accent);}
@@ -260,8 +265,6 @@ textarea.form-input{resize:vertical;}
 
 @media(max-width:380px){
   .panel-grid{grid-template-columns:1fr;}
-  .home-btns{flex-direction:column;}
-  .home-btn{aspect-ratio:auto;padding:20px;flex-direction:row;}
 }
 </style>
 </head>
@@ -289,20 +292,20 @@ textarea.form-input{resize:vertical;}
     <div class="home-info-card anim-delay1">
       <div style="text-align:center;margin-bottom:16px">
         <span class="editable home-welcome" id="welcomeText">BIENVENIDOS JÓVENES VALIENTES</span>
-        <button class="pencil" onclick="editText('welcomeText','Texto de bienvenida')">🖊️</button>
+        <button class="pencil" onclick="openElemModal('welcomeText')">🖊️</button>
       </div>
       <div class="home-info-row">
         <span>📍</span>
         <div style="flex:1">
           <span class="editable info-val" id="addressText">Esperando información del admin</span>
-          <button class="pencil" onclick="editText('addressText','Dirección')">🖊️</button>
+          <button class="pencil" onclick="openElemModal('addressText')">🖊️</button>
         </div>
       </div>
       <div class="home-info-row">
         <span>💳</span>
         <div style="flex:1">
           <span class="editable info-val" id="aliasText">Esperando información del admin</span>
-          <button class="pencil" onclick="editText('aliasText','Alias')">🖊️</button>
+          <button class="pencil" onclick="openElemModal('aliasText')">🖊️</button>
         </div>
       </div>
       <div class="home-info-row" style="align-items:flex-start">
@@ -310,7 +313,7 @@ textarea.form-input{resize:vertical;}
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
             <span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase">Directivos</span>
-            <button class="pencil" onclick="editDirectors()">🖊️</button>
+            <button class="pencil" onclick="openElemModal('directorsList')">🖊️</button>
           </div>
           <div id="directorsList"><div class="director-item" style="color:var(--text3);font-style:italic">Esperando información del admin</div></div>
         </div>
@@ -318,15 +321,19 @@ textarea.form-input{resize:vertical;}
     </div>
 
     <div class="home-btns anim-delay2">
-      <button class="home-btn home-btn-dir" onclick="goSelector('directiva')">
-        <div id="iconDirectiva" style="font-size:36px">🛡️</div>
+      <button class="home-btn home-btn-dir" onclick="goSelector('directiva')" id="btnDirectiva">
+        <div id="iconDirectiva" style="font-size:32px">🛡️</div>
         <span id="labelDirectiva">DIRECTIVA</span>
-        <button class="pencil btn-img-pencil" onclick="event.stopPropagation();tryBtnImg('directiva')">🖊️</button>
+        <div class="pencil-group" onclick="event.stopPropagation()">
+          <button class="pencil" onclick="openElemModal('directiva')">🖊️</button>
+        </div>
       </button>
-      <button class="home-btn home-btn-jov" onclick="goSelector('joven')">
-        <div id="iconJoven" style="font-size:36px">⚡</div>
+      <button class="home-btn home-btn-jov" onclick="goSelector('joven')" id="btnJoven">
+        <div id="iconJoven" style="font-size:32px">⚡</div>
         <span id="labelJoven">JOVEN VALIENTE</span>
-        <button class="pencil btn-img-pencil" onclick="event.stopPropagation();tryBtnImg('joven')">🖊️</button>
+        <div class="pencil-group" onclick="event.stopPropagation()">
+          <button class="pencil" onclick="openElemModal('joven')">🖊️</button>
+        </div>
       </button>
     </div>
     <input type="file" id="imgDirectiva" accept="image/*" style="display:none" onchange="onBtnImg(event,'directiva')">
@@ -482,9 +489,46 @@ textarea.form-input{resize:vertical;}
 <div class="modal-overlay" id="mEditText">
   <div class="modal">
     <button class="modal-close" onclick="cm('mEditText')">✕</button>
-    <div class="modal-title" id="etTitle">EDITAR TEXTO</div>
-    <div class="form-group"><textarea class="form-input" id="etArea" rows="3"></textarea></div>
-    <button class="btn-primary" onclick="saveText()">GUARDAR</button>
+    <div class="modal-title" id="etTitle">✏️ EDITAR</div>
+    <!-- Sección texto -->
+    <div id="etTextSection">
+      <div class="form-group">
+        <label class="form-label">📝 Texto</label>
+        <textarea class="form-input" id="etArea" rows="3"></textarea>
+      </div>
+    </div>
+    <!-- Sección color -->
+    <div id="etColorSection" style="display:none">
+      <div class="form-group">
+        <label class="form-label">🎨 Color</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="etColorPresets"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="color" id="etColorCustom" style="width:42px;height:42px;border:none;border-radius:10px;cursor:pointer;padding:2px;background:var(--bg3)" oninput="onEtColorInput(this.value)">
+          <span style="font-size:13px;color:var(--text2)">Personalizado</span>
+          <span id="etColorHex" style="font-size:13px;font-weight:700;color:var(--text2)">#ffffff</span>
+        </div>
+        <div id="etColorPreview" style="width:100%;height:36px;border-radius:8px;margin-top:10px;border:1px solid var(--border)"></div>
+      </div>
+    </div>
+    <!-- Sección foto -->
+    <div id="etPhotoSection" style="display:none">
+      <div class="form-group">
+        <label class="form-label">🖼️ Imagen (PNG / JPG)</label>
+        <div id="etPhotoPreview" style="display:none;margin-bottom:10px;position:relative">
+          <img id="etPhotoImg" style="width:80px;height:80px;object-fit:contain;border-radius:10px;border:1px solid var(--border)">
+          <button onclick="clearEtPhoto()" style="position:absolute;top:-6px;left:68px;background:var(--red);border:none;border-radius:99px;color:#fff;width:20px;height:20px;cursor:pointer;font-size:11px">✕</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;background:var(--bg3);border:1.5px dashed var(--border);border-radius:12px;padding:14px;cursor:pointer">
+          <span style="font-size:22px">📷</span>
+          <div>
+            <div style="font-size:14px;font-weight:600">Subir imagen</div>
+            <div style="font-size:12px;color:var(--text2)">PNG o JPG — se comprime automáticamente</div>
+          </div>
+          <input type="file" id="etPhotoFile" accept="image/*" style="display:none" onchange="onEtPhotoUpload(event)">
+        </label>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveEditElement()">GUARDAR</button>
   </div>
 </div>
 
@@ -850,7 +894,19 @@ function toggleDashEditMode(){
 // ================================================================
 function renderHome(){
   Object.entries(db.texts).forEach(([k,v])=>{const el=document.getElementById(k);if(el)el.textContent=v;});
-  // Actualizar etiquetas de botones según sesión
+  // Restaurar textos personalizados de botones
+  if(db.config){
+    if(db.config.labelDirectiva&&!CU){const el=document.getElementById('labelDirectiva');if(el)el.textContent=db.config.labelDirectiva;}
+    if(db.config.labelJoven&&!CU){const el=document.getElementById('labelJoven');if(el)el.textContent=db.config.labelJoven;}
+  }
+  // Restaurar colores de botones
+  if(db.btnColors){
+    Object.entries(db.btnColors).forEach(([id,color])=>{
+      const el=document.getElementById(id);
+      if(el&&color)el.style.background=color;
+    });
+  }
+  // Actualizar etiquetas según sesión activa
   const lDir=document.getElementById('labelDirectiva');
   const lJov=document.getElementById('labelJoven');
   if(CU){
@@ -858,8 +914,8 @@ function renderHome(){
     if(lDir)lDir.textContent=label;
     if(lJov)lJov.textContent=label;
   } else {
-    if(lDir)lDir.textContent='DIRECTIVA';
-    if(lJov)lJov.textContent='JOVEN VALIENTE';
+    if(lDir)lDir.textContent=db.config?.labelDirectiva||'DIRECTIVA';
+    if(lJov)lJov.textContent=db.config?.labelJoven||'JOVEN VALIENTE';
   }
   if(db.logo){document.getElementById('logoImg').src=db.logo;document.getElementById('logoImg').style.display='block';document.getElementById('logoPlaceholder').style.display='none';}
   else{document.getElementById('logoImg').style.display='none';document.getElementById('logoPlaceholder').style.display='flex';}
@@ -910,18 +966,224 @@ function onBtnImg(e,t){
 // ================================================================
 // TEXT EDIT
 // ================================================================
-function editText(id,label){
+// ── Estado del editor de elementos ──
+_etType=null;_etTarget=null;_etColor=null;_etPhotoBase64=null;
+const ELEM_CFG={
+  welcomeText:{label:'Título de bienvenida',tabs:['text','color'],colorVar:'--accent',colorVar2:'--accent2'},
+  addressText:{label:'Dirección',tabs:['text']},
+  aliasText:{label:'Alias',tabs:['text']},
+  directorsList:{label:'Lista de directivos',tabs:['text']},
+  directiva:{label:'Botón Directiva',tabs:['text','color','photo'],btnId:'btnDirectiva',textKey:'labelDirectiva'},
+  joven:{label:'Botón Joven Valiente',tabs:['text','color','photo'],btnId:'btnJoven',textKey:'labelJoven'},
+};
+// ── Modal unificado por elemento ──
+let _elemKey=null;
+function openElemModal(key){
   if(!editMode)return;
-  _etId=id;document.getElementById('etTitle').textContent='EDITAR: '+label.toUpperCase();
-  document.getElementById('etArea').value=db.texts[id]||'';
+  _elemKey=key;
+  const cfg=ELEM_CFG[key];
+  if(!cfg)return;
+  document.getElementById('etTitle').textContent='🖊️ '+cfg.label.toUpperCase();
+  const tabs=cfg.tabs||['text'];
+  // Ocultar todas las secciones
+  document.getElementById('etTextSection').style.display='none';
+  document.getElementById('etColorSection').style.display='none';
+  document.getElementById('etPhotoSection').style.display='none';
+  // Construir tab bar
+  let tabBar=document.getElementById('etTabBar');
+  if(!tabBar){
+    tabBar=document.createElement('div');
+    tabBar.id='etTabBar';
+    tabBar.className='tabs';
+    tabBar.style.marginBottom='16px';
+    const modal=document.querySelector('#mEditText .modal');
+    modal.insertBefore(tabBar,modal.querySelector('#etTextSection'));
+  }
+  if(tabs.length>1){
+    tabBar.style.display='flex';
+    tabBar.innerHTML=tabs.map((t,i)=>`<button class="tab${i===0?' active':''}" onclick="switchEtTab('${t}',this)">${t==='text'?'📝 Texto':t==='color'?'🎨 Color':'🖼️ Foto'}</button>`).join('');
+  } else {
+    tabBar.style.display='none';
+  }
+  // Mostrar primera pestaña
+  switchEtTab(tabs[0],null);
   om('mEditText');
 }
-function saveText(){
-  const v=document.getElementById('etArea').value.trim();if(!_etId)return;
-  db.texts[_etId]=v;const el=document.getElementById(_etId);if(el)el.textContent=v;
-  sdb();saveToCloud();cm('mEditText');toast('Texto actualizado ✓','success');
+
+function switchEtTab(tab,btn){
+  // Actualizar tabs activos
+  if(btn){document.querySelectorAll('#etTabBar .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+  const cfg=ELEM_CFG[_elemKey]||{};
+  document.getElementById('etTextSection').style.display='none';
+  document.getElementById('etColorSection').style.display='none';
+  document.getElementById('etPhotoSection').style.display='none';
+  if(tab==='text'){
+    document.getElementById('etTextSection').style.display='block';
+    // Cargar valor actual
+    if(_elemKey==='directorsList'){
+      document.getElementById('etArea').value=(db.directorsList||[]).join(String.fromCharCode(10));
+    } else if(cfg.textKey){
+      document.getElementById('etArea').value=db.config?.[cfg.textKey]||cfg.label||'';
+    } else {
+      document.getElementById('etArea').value=db.texts?.[_elemKey]||'';
+    }
+  } else if(tab==='color'){
+    document.getElementById('etColorSection').style.display='block';
+    // Obtener color actual
+    let curColor='#ff4d6d';
+    if(cfg.colorVar){
+      curColor=(db.colors?.[cfg.colorVar]||getComputedStyle(document.documentElement).getPropertyValue(cfg.colorVar)||'').trim()||'#ff4d6d';
+    } else if(cfg.btnId){
+      curColor=(db.btnColors?.[cfg.btnId]||'').trim()||'#1a1a3e';
+    }
+    _etColor=curColor;
+    document.getElementById('etColorCustom').value=curColor;
+    document.getElementById('etColorHex').textContent=curColor;
+    document.getElementById('etColorPreview').style.background=curColor;
+    document.getElementById('etColorPresets').innerHTML=ET_PRESETS.map(c=>
+      `<div style="width:30px;height:30px;border-radius:7px;background:${c};cursor:pointer;border:2px solid ${c===curColor?'#fff':'transparent'};transition:all .2s;flex-shrink:0" onclick="onEtColorInput('${c}')"></div>`
+    ).join('');
+  } else if(tab==='photo'){
+    document.getElementById('etPhotoSection').style.display='block';
+    const imgKey=cfg.btnId==='btnDirectiva'?'directiva':'joven';
+    const existing=db.btnImgs?.[imgKey];
+    if(existing){document.getElementById('etPhotoImg').src=existing;document.getElementById('etPhotoPreview').style.display='block';}
+    else document.getElementById('etPhotoPreview').style.display='none';
+    document.getElementById('etPhotoFile').value='';
+  }
 }
-function editDirectors(){if(!editMode)return;document.getElementById('dirsArea').value=(db.directorsList||[]).join('\n');om('mEditDirs');}
+const ET_PRESETS=['#ff4d6d','#ff9f1c','#4cc9f0','#7b2fff','#39d353','#ffd700','#ffffff','#000000','#1a1a2e','#f0f0ff','#ff4d4d','#00b4d8'];
+
+function openElemEdit(id,label,type,target){
+  if(!editMode)return;
+  _etId=id; _etType=type; _etTarget=target||null;
+  _etColor=null; _etPhotoBase64=null;
+  document.getElementById('etTitle').textContent='🖊️ '+label.toUpperCase();
+  // Mostrar/ocultar secciones según tipo
+  const tSec=document.getElementById('etTextSection');
+  const cSec=document.getElementById('etColorSection');
+  const pSec=document.getElementById('etPhotoSection');
+  tSec.style.display='none'; cSec.style.display='none'; pSec.style.display='none';
+  if(type==='text'||type==='directors'||type==='btnDir_texto'||type==='btnJov_texto'){
+    tSec.style.display='block';
+    if(type==='directors'){
+      document.getElementById('etArea').value=(db.directorsList||[]).join('\n');
+    } else if(type==='btnDir_texto'){
+      document.getElementById('etArea').value=db.config?.labelDirectiva||'DIRECTIVA';
+    } else if(type==='btnJov_texto'){
+      document.getElementById('etArea').value=db.config?.labelJoven||'JOVEN VALIENTE';
+    } else {
+      document.getElementById('etArea').value=db.texts[id]||'';
+    }
+  }
+  if(type==='color'||type==='color_var'){
+    cSec.style.display='block';
+    // Color actual del elemento
+    let curColor='#ff4d6d';
+    if(type==='color_var'){
+      curColor=db.colors[target]||getComputedStyle(document.documentElement).getPropertyValue(target).trim()||'#ff4d6d';
+    } else if(type==='color'){
+      // color de fondo del botón
+      const btnEl=document.getElementById(target);
+      if(btnEl) curColor=db.btnColors&&db.btnColors[target]||'#1a1a3e';
+    }
+    _etColor=curColor.trim();
+    document.getElementById('etColorCustom').value=_etColor;
+    document.getElementById('etColorHex').textContent=_etColor;
+    document.getElementById('etColorPreview').style.background=_etColor;
+    // Presets
+    document.getElementById('etColorPresets').innerHTML=ET_PRESETS.map(c=>
+      `<div style="width:30px;height:30px;border-radius:7px;background:${c};cursor:pointer;border:2px solid ${c===_etColor?'#fff':'transparent'};transition:all .2s;flex-shrink:0" onclick="onEtColorInput('${c}')"></div>`
+    ).join('');
+  }
+  if(type==='photo'){
+    pSec.style.display='block';
+    const existing=db.btnImgs&&db.btnImgs[target];
+    if(existing){
+      document.getElementById('etPhotoImg').src=existing;
+      document.getElementById('etPhotoPreview').style.display='block';
+    } else {
+      document.getElementById('etPhotoPreview').style.display='none';
+    }
+    document.getElementById('etPhotoFile').value='';
+  }
+  om('mEditText');
+}
+
+function onEtColorInput(c){
+  _etColor=c;
+  document.getElementById('etColorCustom').value=c;
+  document.getElementById('etColorHex').textContent=c;
+  document.getElementById('etColorPreview').style.background=c;
+  // Actualizar bordes de presets
+  document.getElementById('etColorPresets').innerHTML=ET_PRESETS.map(pc=>
+    `<div style="width:30px;height:30px;border-radius:7px;background:${pc};cursor:pointer;border:2px solid ${pc===c?'#fff':'transparent'};transition:all .2s;flex-shrink:0" onclick="onEtColorInput('${pc}')"></div>`
+  ).join('');
+}
+
+function onEtPhotoUpload(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    compressImage(ev.target.result,300,300,0.82,compressed=>{
+      _etPhotoBase64=compressed;
+      document.getElementById('etPhotoImg').src=compressed;
+      document.getElementById('etPhotoPreview').style.display='block';
+    });
+  };
+  r.readAsDataURL(f);
+}
+
+function clearEtPhoto(){
+  _etPhotoBase64=null;
+  document.getElementById('etPhotoPreview').style.display='none';
+  document.getElementById('etPhotoFile').value='';
+}
+
+function saveEditElement(){
+  const cfg=ELEM_CFG[_elemKey]||{};
+  const tSec=document.getElementById('etTextSection');
+  const cSec=document.getElementById('etColorSection');
+  const pSec=document.getElementById('etPhotoSection');
+  if(tSec&&tSec.style.display!=='none'){
+    const v=document.getElementById('etArea').value;
+    if(_elemKey==='directorsList'){
+      db.directorsList=v.split(String.fromCharCode(10)).map(s=>s.trim()).filter(Boolean);
+      renderHome();
+    } else if(cfg.textKey){
+      if(!db.config)db.config={};
+      db.config[cfg.textKey]=v.trim();
+      const elId=cfg.textKey;
+      const el=document.getElementById(elId);if(el&&!CU)el.textContent=v.trim();
+    } else {
+      db.texts[_elemKey]=v.trim();
+      const el=document.getElementById(_elemKey);if(el)el.textContent=v.trim();
+    }
+  } else if(cSec&&cSec.style.display!=='none'&&_etColor){
+    if(cfg.colorVar){
+      document.documentElement.style.setProperty(cfg.colorVar,_etColor);
+      if(!db.colors)db.colors={};
+      db.colors[cfg.colorVar]=_etColor;
+      if(cfg.colorVar2){document.documentElement.style.setProperty(cfg.colorVar2,_etColor);db.colors[cfg.colorVar2]=_etColor;}
+    } else if(cfg.btnId){
+      const btnEl=document.getElementById(cfg.btnId);
+      if(btnEl)btnEl.style.background=_etColor;
+      if(!db.btnColors)db.btnColors={};
+      db.btnColors[cfg.btnId]=_etColor;
+    }
+  } else if(pSec&&pSec.style.display!=='none'){
+    if(!db.btnImgs)db.btnImgs={};
+    const imgKey=cfg.btnId==='btnDirectiva'?'directiva':'joven';
+    if(_etPhotoBase64)db.btnImgs[imgKey]=_etPhotoBase64;
+    renderHome();
+  }
+  sdb();saveToCloud();cm('mEditText');toast('Guardado ✓','success');
+}
+
+// Mantener funciones antiguas por compatibilidad
+function editText(id,label){openElemEdit(id,label,'text');}
+function saveText(){saveEditElement();}
+function editDirectors(){openElemEdit('directorsList','Lista de directivos','directors');}
 function saveDirs(){db.directorsList=document.getElementById('dirsArea').value.split('\n').map(s=>s.trim()).filter(Boolean);sdb();saveToCloud();renderHome();cm('mEditDirs');toast('Directivos actualizados ✓','success');}
 
 // ================================================================
