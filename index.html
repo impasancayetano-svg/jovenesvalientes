@@ -799,37 +799,50 @@ function applyTheme(){
 // ================================================================
 function toggleEditMode(){
   editMode=!editMode;
+  dashEditMode=editMode; // sincronizar con dashboard
   const btn=document.getElementById('editToggle');
   const home=document.getElementById('screen-home');
-  if(editMode){btn.textContent='✅ EDITANDO';btn.classList.add('on');home.classList.add('edit-active');}
-  else{btn.textContent='✏️ EDITAR';btn.classList.remove('on');home.classList.remove('edit-active');}
+  if(editMode){
+    btn.textContent='✅ EDITANDO';btn.classList.add('on');home.classList.add('edit-active');
+    // Actualizar card del dashboard si existe
+    const card=document.getElementById('editModeCard');
+    const label=document.getElementById('editModeCardLabel');
+    if(card){card.style.background='rgba(57,211,83,.15)';card.style.borderColor='var(--green)';}
+    if(label)label.innerHTML='✅ MODO EDICIÓN<br><span style="font-size:10px;font-weight:400;opacity:.7">Lápices activos en el inicio</span>';
+  } else {
+    btn.textContent='✏️ EDITAR';btn.classList.remove('on');home.classList.remove('edit-active');
+    const card=document.getElementById('editModeCard');
+    const label=document.getElementById('editModeCardLabel');
+    if(card){card.style.background='';card.style.borderColor='';}
+    if(label)label.textContent='MODO EDICIÓN';
+  }
 }
 let dashEditMode=false;
 function toggleDashEditMode(){
   dashEditMode=!dashEditMode;
   const card=document.getElementById('editModeCard');
   const label=document.getElementById('editModeCardLabel');
+  // Sincronizar editMode con dashEditMode
+  editMode=dashEditMode;
+  // Actualizar botón ✏️ del inicio
+  const btnHome=document.getElementById('editToggle');
+  const home=document.getElementById('screen-home');
   if(dashEditMode){
-    // Activar: card verde, abrir sección combinada
+    // Poner card en verde
     if(card){card.style.background='rgba(57,211,83,.15)';card.style.borderColor='var(--green)';}
-    if(label)label.textContent='✅ EDITANDO — ACTIVO';
-    // Activar también el modo edición de la home
-    editMode=true;
-    const btn=document.getElementById('editToggle');
-    const home=document.getElementById('screen-home');
-    if(btn){btn.textContent='✅ EDITANDO';btn.classList.add('on');}
+    if(label)label.innerHTML='✅ MODO EDICIÓN<br><span style="font-size:10px;font-weight:400;opacity:.7">Lápices activos en el inicio</span>';
+    if(btnHome){btnHome.textContent='✅ EDITANDO';btnHome.classList.add('on');}
     if(home)home.classList.add('edit-active');
-    sec('dash-edit');
+    toast('🖊️ Lápices activados — andá al inicio','success');
   } else {
+    // Volver a estado normal
     if(card){card.style.background='';card.style.borderColor='';}
     if(label)label.textContent='MODO EDICIÓN';
-    editMode=false;
-    const btn=document.getElementById('editToggle');
-    const home=document.getElementById('screen-home');
-    if(btn){btn.textContent='✏️ EDITAR';btn.classList.remove('on');}
+    if(btnHome){btnHome.textContent='✏️ EDITAR';btnHome.classList.remove('on');}
     if(home)home.classList.remove('edit-active');
-    sec('dash-edit');
+    toast('Modo edición desactivado');
   }
+  // NO abre ninguna sección — solo activa/desactiva lápices
 }
 
 // ================================================================
