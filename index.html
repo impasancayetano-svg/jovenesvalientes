@@ -804,6 +804,33 @@ function toggleEditMode(){
   if(editMode){btn.textContent='✅ EDITANDO';btn.classList.add('on');home.classList.add('edit-active');}
   else{btn.textContent='✏️ EDITAR';btn.classList.remove('on');home.classList.remove('edit-active');}
 }
+let dashEditMode=false;
+function toggleDashEditMode(){
+  dashEditMode=!dashEditMode;
+  const card=document.getElementById('editModeCard');
+  const label=document.getElementById('editModeCardLabel');
+  if(dashEditMode){
+    // Activar: card verde, abrir sección combinada
+    if(card){card.style.background='rgba(57,211,83,.15)';card.style.borderColor='var(--green)';}
+    if(label)label.textContent='✅ EDITANDO — ACTIVO';
+    // Activar también el modo edición de la home
+    editMode=true;
+    const btn=document.getElementById('editToggle');
+    const home=document.getElementById('screen-home');
+    if(btn){btn.textContent='✅ EDITANDO';btn.classList.add('on');}
+    if(home)home.classList.add('edit-active');
+    sec('dash-edit');
+  } else {
+    if(card){card.style.background='';card.style.borderColor='';}
+    if(label)label.textContent='MODO EDICIÓN';
+    editMode=false;
+    const btn=document.getElementById('editToggle');
+    const home=document.getElementById('screen-home');
+    if(btn){btn.textContent='✏️ EDITAR';btn.classList.remove('on');}
+    if(home)home.classList.remove('edit-active');
+    sec('dash-edit');
+  }
+}
 
 // ================================================================
 // HOME
@@ -832,9 +859,40 @@ function renderHome(){
   }
 }
 function tryLogoUpload(){if(!editMode)return;document.getElementById('logoFile').click();}
-function onLogoUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{db.logo=ev.target.result;sdb();saveToCloud();renderHome();toast('Logo actualizado ✓','success');};r.readAsDataURL(f);}
+function compressImage(dataUrl,maxW,maxH,quality,cb){
+  const img=new Image();
+  img.onload=function(){
+    const canvas=document.createElement('canvas');
+    let w=img.width,h=img.height;
+    if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+    if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
+    canvas.width=w;canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    cb(canvas.toDataURL('image/jpeg',quality));
+  };
+  img.src=dataUrl;
+}
+function onLogoUpload(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    compressImage(ev.target.result,400,400,0.82,compressed=>{
+      db.logo=compressed;sdb();saveToCloud();renderHome();toast('Logo actualizado ✓','success');
+    });
+  };
+  r.readAsDataURL(f);
+}
 function tryBtnImg(t){if(!editMode)return;document.getElementById('img'+t.charAt(0).toUpperCase()+t.slice(1)).click();}
-function onBtnImg(e,t){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{db.btnImgs[t]=ev.target.result;sdb();saveToCloud();renderHome();toast('Imagen actualizada ✓','success');};r.readAsDataURL(f);}
+function onBtnImg(e,t){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    compressImage(ev.target.result,300,300,0.82,compressed=>{
+      db.btnImgs[t]=compressed;sdb();saveToCloud();renderHome();toast('Imagen actualizada ✓','success');
+    });
+  };
+  r.readAsDataURL(f);
+}
 
 // ================================================================
 // TEXT EDIT
@@ -872,14 +930,14 @@ const CVARS=[
 ];
 const CPRESETS=['#ff4d6d','#ff9f1c','#4cc9f0','#7b2fff','#39d353','#ffd700','#0a0a0f','#ffffff','#1a1a2e','#f0f0ff','#e63946','#00b4d8'];
 
-function openCP(){
+function openCP(preselect){
   const vl=document.getElementById('varList');
   vl.innerHTML=CVARS.map(v=>{
     const cur=db.colors[v.id]||getComputedStyle(document.documentElement).getPropertyValue(v.id).trim()||'#888';
     return`<button class="var-btn" onclick="selectVar('${v.id}',this)"><span class="var-swatch" style="background:${cur}"></span>${v.l}</button>`;
   }).join('');
   document.getElementById('cpPresets').innerHTML=CPRESETS.map(c=>`<div class="cp-preset" style="background:${c}" onclick="setHex('${c}')"></div>`).join('');
-  selectVar('--accent',vl.querySelector('.var-btn'));
+  selectVar(preselect||'--accent',vl.querySelector(preselect?`.var-btn[onclick*="'${preselect}'"]`:'.var-btn'));
   drawCP();om('mColorPicker');
 }
 function selectVar(vid,btn){
@@ -1019,7 +1077,7 @@ function renderDashMain(){
   if(r==='absoluto'||(r==='mod'&&hp('manage_users')))cards+=pc('👤','Usuarios',"sec('users')");
   if(r==='absoluto'||(r==='mod'&&hp('view_requests'))){const p=db.requests.filter(x=>x.status==='pending').length;cards+=pc('✉️',`Solicitudes${p>0?` (${p})`:'`'}`,"sec('requests')",p>0);}
   if(r==='absoluto'||(r==='mod'&&hp('view_log')))cards+=pc('📝','Registro',"sec('log')");
-  if(r==='absoluto'||(r==='mod'&&hp('edit_texts'))){cards+=pc('✏️','Textos',"sec('edit-texts')");cards+=pc('🎨','Colores',"openCP()");}
+  if(r==='absoluto'||(r==='mod'&&hp('edit_texts'))){cards+=`<div class="panel-card" id="editModeCard" onclick="toggleDashEditMode()" style="grid-column:span 2;border-color:var(--border)"><span class="panel-card-icon">✏️</span><div class="panel-card-title" id="editModeCardLabel">MODO EDICIÓN</div></div>`;}
   if(r==='absoluto'){cards+=pc('🎭','Roles',"sec('roles')");cards+=pc('🔑','Permisos',"sec('perms')");}
   document.getElementById('dashContent').innerHTML=`
     <div style="margin-bottom:16px"><div style="font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:2px;color:var(--text2)">PANEL DE CONTROL</div></div>
@@ -1038,6 +1096,7 @@ function secHTML(id){
     case 'requests':return sReqs();
     case 'log':return sLog();
     case 'edit-texts':return sEditTexts();
+    case 'dash-edit':return sDashEdit();
     case 'roles':return sRoles();
     case 'perms':return sPerms();
     default:return'<div class="empty"><div>—</div></div>';
@@ -1062,7 +1121,7 @@ function sProf(){
   const u=CU,ac=u.attId?attCount(u.attId):0;
   return`<div class="section-header"><h2>😊 MI PERFIL</h2></div>
     <div class="profile-card">
-      <span class="profile-emoji" onclick="om('mEmoji')">${u.emoji||'😊'}</span>
+      <span class="profile-emoji" onclick="openEmojiModal()">${u.emoji||'😊'}</span>
       <div class="profile-name">${u.username}</div>
       <div style="color:var(--text3);font-size:13px;margin-bottom:12px">@${u.username}</div>
       <div>${rc(u.role,u)}</div>
@@ -1227,9 +1286,27 @@ function sLog(){
 
 function sEditTexts(){
   const fields=[{id:'welcomeText',l:'Bienvenida'},{id:'addressText',l:'Dirección'},{id:'aliasText',l:'Alias'},{id:'forgotText',l:'Olvidé contraseña'},{id:'registerInfoBox',l:'Info registro'},{id:'successText',l:'Solicitud enviada'}];
+  const dirsVal=(db.directorsList||[]).join('\n');
   return`<div class="section-header"><h2>✏️ TEXTOS</h2></div>`+fields.map(f=>`<div class="form-group"><label class="form-label">${f.l}</label><textarea class="form-input" id="tf-${f.id}" rows="2">${db.texts[f.id]||''}</textarea><button class="btn-secondary" style="margin-top:6px" onclick="saveTF('${f.id}')">GUARDAR</button></div>`).join('')+
-    `<div class="form-group"><label class="form-label">Directivos (uno por línea)</label><textarea class="form-input" id="dirsDash" rows="4">${(db.directorsList||[]).join('\n')}</textarea><button class="btn-secondary" style="margin-top:6px" onclick="saveDirsDash()">GUARDAR</button></div>`;
+    `<div class="form-group"><label class="form-label">Directivos (uno por línea)</label><textarea class="form-input" id="dirsDash" rows="4">${dirsVal}</textarea><button class="btn-secondary" style="margin-top:6px" onclick="saveDirsDash()">GUARDAR</button></div>`;
 }
+function sDashEdit(){
+  const active=dashEditMode;
+  const statusColor=active?'var(--green)':'var(--text3)';
+  const statusText=active?'✅ Modo edición ACTIVO — los lápices 🖊️ están habilitados':'⚠️ Activá el modo edición para habilitar los lápices en el inicio';
+  const fields=[{id:'welcomeText',l:'Bienvenida'},{id:'addressText',l:'Dirección'},{id:'aliasText',l:'Alias'},{id:'forgotText',l:'Olvidé contraseña'},{id:'registerInfoBox',l:'Info registro'},{id:'successText',l:'Solicitud enviada'}];
+  return`<div class="section-header"><h2>✏️ EDITAR</h2></div>
+    <div style="background:${active?'rgba(57,211,83,.1)':'var(--bg2)'};border:1px solid ${active?'var(--green)':'var(--border)'};border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;font-size:13px;color:${statusColor};font-weight:600">${statusText}</div>
+    <div style="font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:2px;color:var(--text2);margin-bottom:12px">🎨 COLORES</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
+      ${CVARS.slice(0,6).map(v=>{const cur=db.colors[v.id]||getComputedStyle(document.documentElement).getPropertyValue(v.id).trim()||'#888';return`<button onclick="openCP('${v.id}')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:'Exo 2',sans-serif;font-size:12px;color:var(--text2);font-weight:600"><span style="width:20px;height:20px;border-radius:5px;background:${cur};flex-shrink:0;border:1px solid rgba(255,255,255,.15)"></span>${v.l.split('(')[0].trim()}</button>`;}).join('')}
+      <button onclick="openCP()" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card);border:1px solid var(--accent);border-radius:10px;cursor:pointer;font-family:'Exo 2',sans-serif;font-size:12px;color:var(--accent);font-weight:700;grid-column:span 2">🎨 Ver todos los colores</button>
+    </div>
+    <div style="font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:2px;color:var(--text2);margin-bottom:12px">📝 TEXTOS</div>
+    ${fields.map(f=>`<div class="form-group"><label class="form-label">${f.l}</label><textarea class="form-input" id="tf-${f.id}" rows="2">${db.texts[f.id]||''}</textarea><button class="btn-secondary" style="margin-top:6px" onclick="saveTF('${f.id}')">GUARDAR</button></div>`).join('')}
+    <div class="form-group"><label class="form-label">Directivos (uno por línea)</label><textarea class="form-input" id="dirsDash" rows="4">${(db.directorsList||[]).join(String.fromCharCode(10))}</textarea><button class="btn-secondary" style="margin-top:6px" onclick="saveDirsDash()">GUARDAR</button></div>`;
+}
+
 function saveTF(id){const v=document.getElementById('tf-'+id).value.trim();db.texts[id]=v;const el=document.getElementById(id);if(el)el.textContent=v;sdb();saveToCloud();renderHome();toast('Guardado ✓','success');}
 function saveDirsDash(){db.directorsList=document.getElementById('dirsDash').value.split('\n').map(s=>s.trim()).filter(Boolean);sdb();saveToCloud();renderHome();toast('Directivos actualizados ✓','success');}
 
@@ -1353,7 +1430,7 @@ function saveProfile(){
 const EMOJIS={
   faces:['😊','😎','🤩','😃','😅','🥳','😇','🤓','😏','🥹','😤','🫡','🤔','😴','🥸','😈','👿','🤯','😱','🤗','😂','🤣','😭','😍','🥰','😘','🫶','💪','✌️','🙌','😆','🤪','😜','🧐','🤡','👻','💀','🫠','🥴','🤑','😤','😵','🤧','🥶','🥵','😬','🙈','🙉','🙊'],
   animals:['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦅','🦆','🦉','🦇','🐺','🐴','🦄','🐝','🦋','🐢','🦎','🐍','🐙','🦑','🐠','🐬','🐳','🦈','🐊','🐆','🦓','🐘','🦒','🦔','🦦','🐓','🦃','🦚','🦜','🦩','🐉','🦕'],
-  flags:['🇦🇷','🇧🇷','🇺🇸','🇲🇽','🇨🇴','🇨🇱','🇵🇪','🇻🇪','🇺🇾','🇵🇾','🇧🇴','🇪🇨','🇬🇹','🇨🇺','🇩🇴','🇭🇳','🇸🇻','🇨🇷','🇵🇦','🇳🇮','🇬🇧','🇪🇸','🇫🇷','🇩🇪','🇮🇹','🇵🇹','🇯🇵','🇰🇷','🇨🇳','🇷🇺','🇦🇺','🇨🇦','🇮🇱','🇵🇱','🇳🇱','🇧🇪','🇨🇭','🇦🇹','🇸🇪','🇳🇴','🇩🇰','🇫🇮','🇮🇪','🇬🇷','🇹🇷','🇺🇦','🇿🇦','🇳🇬','🇪🇬','🇲🇦']
+  flags:['🇦🇷','🇧🇷','🇲🇽','🇨🇴','🇨🇱','🇵🇪','🇻🇪','🇺🇾','🇵🇾','🇧🇴','🇪🇨','🇬🇹','🇨🇺','🇩🇴','🇭🇳','🇸🇻','🇨🇷','🇵🇦','🇳🇮','🇬🇾','🇸🇷','🇹🇹','🇯🇲','🇭🇹','🇧🇿']
 };
 function openEmojiModal(){
   // Todos los emojis juntos con separadores de categoría
